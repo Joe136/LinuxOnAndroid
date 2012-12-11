@@ -1,0 +1,89 @@
+#!/bin/bash
+if [ "$1" == "-h" ] || [ "$1" == "--help" ] || [ "$1" == "" ] || [ "$2" == "" ] || [ "$3" == "" ];then
+  echo "Create a new imagefile"
+  echo "mkdisk [options] imagename path size [loopno]"
+  if [ "$1" == "-h" ] || [ "$1" == "--help" ]; then exit 0; fi
+  exit 1
+fi
+
+#append=""
+#level0=''
+#level1=''
+
+#for arg in $@
+#do
+#  for opt in level0
+#  do
+#    if [ "$opt" ==  ]; then
+#    fi
+#  done
+#  
+#done
+
+if $debug; then
+DEBUG="echo"
+else
+DEBUG="#"
+fi
+
+img="$1.img"
+target="$2"
+size="$3"
+
+DEBUG $img
+DEBUG $target
+DEBUG $size
+
+if [ "$(($size >= 4294))" == "1" ]; then
+  echo "Filesize to high, use a size smaller than 4294MB."
+  exit 4
+fi
+
+if [ "$4" == "" ]; then
+  for i in $(seq 250 -1 0); do
+    if [ ! -e "/dev/block/loop$i" ]; then
+      loopno=$i
+      break
+    fi
+  done
+  if [ "$loopno" == "" ]; then
+    echo "No free loop-devices"
+    exit 7
+  fi
+else
+  if [ $4 is not a number ] || [ "$(($4 < 0))" == "1" ] || [ "$(($4 >= 256))" == "1" ]; then
+    echo "Loop-Number was not acccepted."
+    exit 5
+  fi
+  if [ ! -e /dev/block/loop$4 ]; then
+    loopno="$4"
+  else
+    echo "Loop-Number is in use."
+    exit 6
+  fi
+fi
+
+if [ "$loopno" == "" ]; then
+  echo "An unknown error occures on defining the loop-device"
+  exit 8
+fi
+
+loop=/dev/block/loop$loopno
+
+dd if=/dev/zero of=$img bs=1MB count=0 seek=$size
+mke2fs -F $img
+
+if [ -r $loop ]; then
+  if mount | grep -q "$loop"; then
+    echo "loop-number currently mounted"
+    exit 2;
+  fi
+  echo "Remove old loop-device"
+  losetup -d $loop
+  rm $loop
+fi
+#create loop device
+mknod $loop b 7 $loopno
+losetup $loop $img
+mkdir -p $target
+mount -t ext2 $loop $target

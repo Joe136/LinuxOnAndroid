@@ -1,0 +1,31 @@
+#!/bin/bash
+case "$1" in
+start)
+  echo "start" | nc localhost 4242
+
+;;
+stop)
+  echo "stop" | nc localhost 4242
+
+;;
+restart)
+  echo "restart" | nc localhost 4242
+
+;;
+dumpsys)
+  echo "dumpsys" | nc localhost 4242
+  sleep 2
+  echo "$2" | nc localhost 4242 && nc -l -p 4243
+
+;;
+shell)
+  echo "shell" | nc localhost 4242
+  read pass
+  accept=$(echo "$pass" | nc localhost 4242)
+  echo "$accept"
+  if [ "$accept" == "true" ]; then
+    nc localhost 4242
+  fi
+
+;;
+esac
