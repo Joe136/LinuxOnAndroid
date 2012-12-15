@@ -1,18 +1,38 @@
 #!/system/bin/sh
 #sdcard="$(readlink -f /sdcard)"
 system="$(basename $0)"
-sdcard="$EXTERNAL_STORAGE"
-kit="$sdcard/$system"
-home="$ANDROID_DATA/local"
-img="$kit/$system.img"
 mnt="/data/local/$system"
 imgtype="ext2"
 shell="/bin/bash"
 
-export xbin="/system/xbin"
+export xbin="$ANDROID_ROOT/xbin"
 export PATH="$xbin:/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:$PATH"
 export TERM="xterm-color"
 export HOME="/root"
+
+home="$ANDROID_DATA/local"
+
+if [ -z "$SECONDARY_STORAGE" ]; then
+  sdcard="$EXTERNAL_STORAGE"
+else
+  intern="$EXTERNAL_STORAGE"
+  sdcard="$SECONDARY_STORAGE"
+fi
+
+currentscriptpath()
+{
+  local fullpath=`echo "$(readlink -f $0)"`
+  local fullpath_length=`echo ${#fullpath}`
+  local scriptname="$(basename "$fullpath")"
+  local scriptname_length=`echo ${#scriptname}`
+  local result_length=`echo $((fullpath_length - $scriptname_length - 1))`
+  local result=`echo "$fullpath" | head -c $result_length`
+  echo "$result"
+}
+
+kit="$(currentscriptpath)"
+img="$kit/$system.img"
+
 
 #Froyo's apps-to-SD makes use of special loopback devices /dev/block/dm-#
 #Each program installed to SD uses up a normal loopback device.
@@ -44,7 +64,7 @@ mount)
     if [ "$2" = "android" ] && $(mount | ! grep -q " $mnt/mnt/data "); then
       echo "Mounting: System Parts ..."
       mount -o bind $ANDROID_DATA "$mnt/mnt/data"
-      mount -o bind /system "$mnt/mnt/system"
+      mount -o bind $ANDROID_ROOT "$mnt/mnt/system"
       #if [ -d "/sbin" ]; then
       #  mount -o bind /sbin "$mnt/mnt/sbin"
       #fi
@@ -96,7 +116,7 @@ mount)
   if [ "$2" = "android" ]; then
     echo "Mounting: System Parts ..."
     mount -o bind $ANDROID_DATA "$mnt/mnt/data"
-    mount -o bind /system "$mnt/mnt/system"
+    mount -o bind $ANDROID_ROOT "$mnt/mnt/system"
     #if [ -d "/sbin" ]; then
     #  mount -o bind /sbin "$mnt/mnt/sbin"
     #fi
@@ -221,12 +241,19 @@ install)
   if [ "$2" != "" ]; then
     system="$2"
   fi
-  if [ ! -e "/data/local/linuxonandroid/config.$system" ] || [ "$3" = "force" ]; then
+  if [ ! -z "$3" ] && [ "$3" != "--force" ]; then
+    img="$3"
+  fi
+  if [ "$3" == "--noimage" ]; then
+    unset img
+  fi
+
+  if [ ! -e "$home/linuxonandroid/config.$system" ] || [ "$3" = "--force" ] || [ "$4" = "--force" ]; then
     echo "Creating config files ..."
     mkdir -p /data/local/linuxonandroid
-    echo "kit=\"$sdcard/$system\"" >> "/data/local/linuxonandroid/config.$system"
-    echo "img=\"$kit/$system.img\"" >> "/data/local/linuxonandroid/config.$system"
-    echo "mnt=\"/data/local/$system\"" >> "/data/local/linuxonandroid/config.$system"
+    echo "kit=\"$kit\"" >> "/data/local/linuxonandroid/config.$system"
+    echo "img=\"$img\"" >> "/data/local/linuxonandroid/config.$system"
+    echo "mnt=\"$ANDROID_DATA/local/$system\"" >> "/data/local/linuxonandroid/config.$system"
     echo "#native=\"false\"" >> "/data/local/linuxonandroid/config.$system"
     echo "#partition=\"\"" >> "/data/local/linuxonandroid/config.$system"
     echo "#imgtype=\"ext2\"" >> "/data/local/linuxonandroid/config.$system"

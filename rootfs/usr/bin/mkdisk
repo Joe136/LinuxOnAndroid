@@ -2,6 +2,7 @@
 if [ "$1" == "-h" ] || [ "$1" == "--help" ] || [ "$1" == "" ] || [ "$2" == "" ] || [ "$3" == "" ];then
   echo "Create a new imagefile"
   echo "mkdisk [options] imagename path size [loopno]"
+  echo "mkdisk [options] imagename path size -mk \"options\""
   if [ "$1" == "-h" ] || [ "$1" == "--help" ]; then exit 0; fi
   exit 1
 fi
@@ -23,23 +24,46 @@ fi
 if $debug; then
 DEBUG="echo"
 else
-DEBUG="#"
+DEBUG="#" #doesn't work
 fi
 
 img="$1.img"
 target="$2"
 size="$3"
+fs=ext2
 
-DEBUG $img
-DEBUG $target
-DEBUG $size
+#DEBUG $img
+#DEBUG $target
+#DEBUG $size
 
 if [ "$(($size >= 4294))" == "1" ]; then
   echo "Filesize to high, use a size smaller than 4294MB."
   exit 4
 fi
 
-if [ "$4" == "" ]; then
+#TODO if not enought space -> break
+
+if [ "$encrypt" == "true" ]; then
+  encryption=AES
+  mkdir -p "~\.truecrypt"
+  mkdir -p "$target"
+  echo "Create image, wait a moment"
+  dd if=/dev/zero "of=$img" bs=1MB count=0 seek=$size
+  if [ "$?" != "0" ]; then echo "Could not create space for image"; exit 1; fi
+  size="$(($size * 1000000))"
+  echo "Set information for ehcription"
+  truecrypt -c -v "--encryption=$encryption" "--size=$size" "--keyfiles=$HOME/.truecrypt/$img.key" "--filesystem=$fs" "--hash=RIPEMD-160" --volume-type=Normal "$img"
+  if [ "$?" != "0" ]; then echo "Could not create an encrypted image"; exit 1; fi
+  echo "Image created"
+  echo "Mount encrypted image"
+  truecrypt "--keyfiles=$HOME/.truecrypt/$img.key" "$img" "$target"
+fi
+
+if [ "$4" == "-mk" ]; then
+  mkopts="$5"
+fi
+
+if [ "$4" == "" ] || [ "$4" == "-mk" ]; then
   for i in $(seq 250 -1 0); do
     if [ ! -e "/dev/block/loop$i" ]; then
       loopno=$i
@@ -70,8 +94,12 @@ fi
 
 loop=/dev/block/loop$loopno
 
-dd if=/dev/zero of=$img bs=1MB count=0 seek=$size
-mke2fs -F $img
+echo "Create image, wait a moment"
+dd if=/dev/zero "of=$img" bs=1MB count=0 seek=$size
+if [ "$?" != "0" ]; then echo "Could not create space for image"; exit 1; fi
+mke2fs $mkopts -L "$1" -F "$img"
+if [ "$?" != "0" ]; then echo "Could not format the image"; exit 1; fi
+echo "Image created"
 
 if [ -r $loop ]; then
   if mount | grep -q "$loop"; then
@@ -86,4 +114,5 @@ fi
 mknod $loop b 7 $loopno
 losetup $loop $img
 mkdir -p $target
-mount -t ext2 $loop $target
+echo "Mount image"
+mount -t "$fs" $loop $target

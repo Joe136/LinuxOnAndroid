@@ -48,16 +48,74 @@ getBBver()
 
 
 
-currentscriptpath()
+searchImageCurrentPath()
 {
-  local fullpath=`echo "$(readlink -f $0)"`
-  local fullpath_length=`echo ${#fullpath}`
-  local scriptname="$(basename "$fullpath")"
-  local scriptname_length=`echo ${#scriptname}`
-  local result_length=`echo $((fullpath_length - $scriptname_length - 1))`
-  local result=`echo "$fullpath" | head -c $result_length`
-  echo "$result"
+  if [ -e "$1/$2.img" ]; then echo "$1/$2.img"; return; fi
+
+  if [ -d "$1/$2" ]; then
+    count="$(ls -A $1/$2/*.img | awk 'BEGIN{ORS="\t"}{print $0}' | awk -F "\t" '{print NF}')"
+    if [ "$(($count == 1))" == "1" ]; then echo "$sdcard/$2/*.img"; return;
+    elif [ "$(($count > 1))" == "1"  ]; then
+      echo "Is one of these images your System?" 1>&2
+      echo "0: No" 1>&2
+      ls -A $1/$2/*.img | awk '{print NR ": " $1}' 1>&2
+      unset var
+      read var
+      if [ "$(($var <= $count))" == "1" ] && [ "$(($var > 0))" == "1" ]; then
+        echo "$(ls -A $1/$2/*.img | awk 'BEGIN{ORS="\t"}{print $0}' | awk -F "\t" '{print $'$count'}')"
+        return
+      fi
+    fi
+  fi
 }
+
+searchImage()
+{
+  if [ -e "$1/$2.img" ]; then echo "$1/$2.img"; return; fi
+
+  local img="$(searchImageCurrentPath $sdcard $2)"
+  if [ ! -z "$img" ]; echo "$img"; return; fi
+
+  if [ ! -z "$intern" ]; then
+    local img="$(searchImageCurrentPath $intern $2)"
+    if [ ! -z "$img" ]; echo "$img"; return; fi
+  fi
+
+  if [ -d "$sdcard/linux" ]; then
+    local img="$(searchImageCurrentPath $sdcard/linux $2)"
+    if [ ! -z "$img" ]; echo "$img"; return; fi
+  fi
+
+  if [ -d "$intern/linux" ]; then
+    local img="$(searchImageCurrentPath $intern/linux $2)"
+    if [ ! -z "$img" ]; echo "$img"; return; fi
+  fi
+
+  if [ -d "$sdcard/linuxonandroid" ]; then
+    local img="$(searchImageCurrentPath $sdcard/linuxonandroid $1)"
+    if [ ! -z "$img" ]; echo "$img"; return; fi
+  fi
+
+  if [ -d "$intern/linuxonandroid" ]; then
+    local img="$(searchImageCurrentPath $intern/linuxonandroid $1)"
+    if [ ! -z "$img" ]; echo "$img"; return; fi
+  fi
+
+
+}
+
+
+
+#currentscriptpath()
+#{
+#  local fullpath=`echo "$(readlink -f $0)"`
+#  local fullpath_length=`echo ${#fullpath}`
+#  local scriptname="$(basename "$fullpath")"
+#  local scriptname_length=`echo ${#scriptname}`
+#  local result_length=`echo $((fullpath_length - $scriptname_length - 1))`
+#  local result=`echo "$fullpath" | head -c $result_length`
+#  echo "$result"
+#}
 
 
 
