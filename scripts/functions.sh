@@ -69,8 +69,16 @@ searchImageCurrentPath()
   fi
 }
 
-searchImage()
+searchImage() # arg1: kit-path, arg2: given system
 {
+  local bname="$(basename $2)"
+  if [ "$(($(echo $bname | awk 'BEGIN{FS="."{print NF}}') > 1))" == "1" ]; then
+    if [ "$(echo $2 | awk 'BEGIN{FS="."}{print $NF}')" == "img" ]; then
+    fi
+  elif [ "$bname" == "$2" ]; then
+  elif []; then
+  fi
+
   if [ -e "$1/$2.img" ]; then echo "$1/$2.img"; return; fi
 
   local img="$(searchImageCurrentPath $sdcard $2)"

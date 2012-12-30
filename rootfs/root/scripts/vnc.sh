@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 size=852x480
 dpisize=64

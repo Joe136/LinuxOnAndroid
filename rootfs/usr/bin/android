@@ -15,8 +15,12 @@ restart)
 dumpsys)
   echo "dumpsys" | nc localhost 4242
   sleep 2
+  #nc -l -p 4243 &
   echo "$2" | nc localhost 4242 && nc -l -p 4243
 
+;;
+boost)
+  echo "boost" | nc localhost 4242
 ;;
 shell)
   echo "shell" | nc localhost 4242

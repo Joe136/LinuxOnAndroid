@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 export PATH='/bin:/sbin:/usr/bin:/usr/sbin'
 export HOME=/root
 export USER=root

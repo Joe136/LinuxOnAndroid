@@ -1,4 +1,7 @@
 #!/system/bin/sh
+# http://wiki.bash-hackers.org/doku.php
+
+##---------------------------Initialize---------------------------------------##
 system="$(readlink -f $0 | tr '/' '\n' | tail -n 2 | head -n 1)"
 home="$ANDROID_DATA/local"
 
@@ -9,6 +12,9 @@ else
   sdcard="$SECONDARY_STORAGE"
 fi
 
+
+
+##---------------------------Defines------------------------------------------##
 currentscriptpath()
 {
   local fullpath=`echo "$(readlink -f $0)"`
@@ -20,6 +26,9 @@ currentscriptpath()
   echo "$result"
 }
 
+
+
+##---------------------------Continue Initialize------------------------------##
 kit="$(currentscriptpath)"
 
 if [ ! -z "$1" ]; then
@@ -44,7 +53,7 @@ fi
 
 unset kit2
 
-#Include extra functions
+# Include extra functions
 . "$kit/scripts/functions.sh"
 
 echo "Remounting $ANDROID_ROOT rw ..."
@@ -66,7 +75,7 @@ echo "Installing main-script into $bin ..."
 cp -f "$kit/scripts/linux" "$bin/$system"
 chmod 755 "$bin/$system"
 
-#Install $system config
+# Install $system config
 if [ -z "$img" ]; then
   img="$(searchImage $kit $system)"
 fi

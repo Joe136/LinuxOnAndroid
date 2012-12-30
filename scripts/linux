@@ -1,9 +1,10 @@
 #!/system/bin/sh
 #sdcard="$(readlink -f /sdcard)"
 system="$(basename $0)"
-mnt="/data/local/$system"
+mnt="$ANDROID_DATA/local/$system"
 imgtype="ext2"
 shell="/bin/bash"
+ramdisk="/mnt/ramdisk"
 
 export xbin="$ANDROID_ROOT/xbin"
 export PATH="$xbin:/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:$PATH"
@@ -30,6 +31,16 @@ currentscriptpath()
   echo "$result"
 }
 
+getloopno()
+{
+for i in $(seq 250 -1 0); do
+  if [ ! -e "/dev/block/loop$i" ]; then
+    echo $i
+    return
+  fi
+done
+}
+
 kit="$(currentscriptpath)"
 img="$kit/$system.img"
 
@@ -39,7 +50,6 @@ img="$kit/$system.img"
 #We therefore have to make our own with a minor number that we hope
 #users will never reach.
 #Our mount will break if there are $loopno apps installed to SD
-loopno="254"
 
 if [ "$1" != "install" ]; then
   if [ -e "$home/linuxonandroid/config.default" ]; then
@@ -49,8 +59,6 @@ if [ "$1" != "install" ]; then
     . "$home/linuxonandroid/config.$system"
   fi
 fi
-
-loop="/dev/block/loop$loopno"
 
 case "$1" in
 mount)
@@ -89,11 +97,18 @@ mount)
     if [ ! -d "$mnt" ]; then
       mkdir "$mnt"
     fi
-    if [ -e "$loop" ]; then
-      echo "Remove Loopback Device"
-      losetup -d "$loop"
-      rm "$loop"
+
+    loopno=$(getloopno)
+    loop="/dev/block/loop$loopno"
+    if [ "$loopno" == "" ]; then
+      echo "could not mount image, no free loop-devices found"
+      exit 6
     fi
+    #if [ -e "$loop" ]; then
+    #  echo "Remove Loopback Device"
+    #  losetup -d "$loop"
+    #  rm "$loop"
+    #fi
     #create loop device
     mknod "$loop" b 7 "$loopno"
     losetup "$loop" "$img"
@@ -127,7 +142,7 @@ mount)
 ;;
 umount|unmount)
   echo "Kill running processes"
-  
+
   fuser -km "$mnt"
   echo "Unmounting ..."
   #awk '{print $2}' /proc/mounts | grep "^$mnt" | sort -r | xargs umount
@@ -222,6 +237,22 @@ umountimg|unmountimg)
 #  umount -f "$mnt/mnt/sdcard"
 
 ;;
+mountram)
+  if mount | ! grep -q " $mnt "; then
+    echo "$img not mounted"
+    exit 5
+  fi
+
+  mount -t ramfs ramfs "$mnt/$ramdisk"
+
+;;
+umountram)
+#  echo "Kill running processes"
+#  fuser -km "$mnt/$ramdisk"
+  echo "Unmounting ..."
+  umount -f "$mnt/$ramdisk"
+
+;;
 chroot|"")
   "$0" mount
   chroot "$mnt" $shell
@@ -258,6 +289,8 @@ install)
     echo "#partition=\"\"" >> "/data/local/linuxonandroid/config.$system"
     echo "#imgtype=\"ext2\"" >> "/data/local/linuxonandroid/config.$system"
     echo "#imgoptions=\"\"" >> "/data/local/linuxonandroid/config.$system"
+    echo "#ramdisk=\"/mnt/ramdisk\"" >> "/data/local/linuxonandroid/config.$system"
+    echo "#mountdefault=\"sdcard,intern,images,images:default,images:system,images::wireshark,ram\"" >> "/data/local/linuxonandroid/config.$system"
     echo "#shell=\"/bin/bash\"" >> "/data/local/linuxonandroid/config.$system"
     echo "export TERM=\"$TERM\"" >> "/data/local/linuxonandroid/config.$system"
     echo "loopno=\"254\"" >> "/data/local/linuxonandroid/config.$system"
