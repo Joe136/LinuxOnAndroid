@@ -11,3 +11,9 @@ This Branch is for developing. the changed functionalities typically were not te
 
 If you would a running Version, use the 'master' Branch.
 
+
+License
+=======
+
+This Project uses the License of SQLite. For more information see the file "license.terms".
+

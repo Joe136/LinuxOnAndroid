@@ -1,4 +1,7 @@
 #!/bin/bash
+# See the file "license.terms" for information on usage and redistribution of
+# this file, and for a DISCLAIMER OF ALL WARRANTIES.
+
 if [ "$1" == "-h" ] || [ "$1" == "--help" ] || [ "$1" == "" ] || [ "$2" == "" ] || [ "$3" == "" ];then
   echo "Create a new imagefile"
   echo "mkdisk [options] imagename path size [loopno]"

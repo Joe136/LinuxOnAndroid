@@ -1,4 +1,8 @@
 
+# See the file "license.terms" for information on usage and redistribution of
+# this file, and for a DISCLAIMER OF ALL WARRANTIES.
+
+
 vercmp()
 {
   a1="$(echo "$1" | tr '.' ' ' | awk '{ print $1 }')"
