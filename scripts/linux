@@ -309,47 +309,51 @@ install)
     echo "kit=\"$kit\"" > "/data/local/linuxonandroid/config.$system"
     echo "img=\"$img\"" >> "/data/local/linuxonandroid/config.$system"
 
-    if [ "$refresh" == "true" ] && [ -z "$mnt" ]; then
-      echo "mnt=\"$mnt\"" >> "/data/local/linuxonandroid/config.$system"
+    if [ "$refresh" == "true" ] && [ ! -z "$mnt" ]; then
+      echo "mnt=\"$mnt\"" >> "$home/linuxonandroid/config.$system"
     else
-      echo "mnt=\"$ANDROID_DATA/local/$system\"" >> "/data/local/linuxonandroid/config.$system"
+      echo "mnt=\"$ANDROID_DATA/local/$system\"" >> "$home/linuxonandroid/config.$system"
     fi
-    if [ "$refresh" == "true" ] && [ -z "$native" ]; then
-      echo "native=\"$native\"" >> "/data/local/linuxonandroid/config.$system"
+    if [] #TODO
+    elif [ "$refresh" == "true" ] && [ ! -z "$native" ]; then
+      echo "native=\"$native\"" >> "$home/linuxonandroid/config.$system"
     else
-      echo "#native=\"false\"" >> "/data/local/linuxonandroid/config.$system"
+      echo "#native=\"false\"" >> "$home/linuxonandroid/config.$system"
     fi
-    if [ "$refresh" == "true" ] && [ -z "$partition" ]; then
-      echo "partition=\"$partition\"" >> "/data/local/linuxonandroid/config.$system"
+    if [ "$refresh" == "true" ] && [ ! -z "$partition" ]; then
+      echo "partition=\"$partition\"" >> "$home/linuxonandroid/config.$system"
     else
-      echo "#partition=\"\"" >> "/data/local/linuxonandroid/config.$system"
+      echo "#partition=\"\"" >> "$home/linuxonandroid/config.$system"
     fi
-    if [ "$refresh" == "true" ] && [ -z "$imgtype" ]; then
-      echo "imgtype=\"$imgtype\"" >> "/data/local/linuxonandroid/config.$system"
+    if [ "$refresh" == "true" ] && [ ! -z "$imgtype" ]; then
+      echo "imgtype=\"$imgtype\"" >> "$home/linuxonandroid/config.$system"
     else
-      echo "#imgtype=\"ext2\"" >> "/data/local/linuxonandroid/config.$system"
+      echo "#imgtype=\"ext2\"" >> "$home/linuxonandroid/config.$system"
     fi
-    if [ "$refresh" == "true" ] && [ -z "$imgoptions" ]; then
-      echo "imgoptions=\"$imgoptions\"" >> "/data/local/linuxonandroid/config.$system"
+    if [ "$refresh" == "true" ] && [ ! -z "$imgoptions" ]; then
+      echo "imgoptions=\"$imgoptions\"" >> "$home/linuxonandroid/config.$system"
     else
-      echo "#imgoptions=\"\"" >> "/data/local/linuxonandroid/config.$system"
+      echo "#imgoptions=\"\"" >> "$home/linuxonandroid/config.$system"
     fi
-    if [ "$refresh" == "true" ] && [ -z "$ramdisk" ]; then
-      echo "ramdisk=\"$ramdisk\"" >> "/data/local/linuxonandroid/config.$system"
+    if [ "$refresh" == "true" ] && [ ! -z "$ramdisk" ]; then
+      echo "ramdisk=\"$ramdisk\"" >> "$home/linuxonandroid/config.$system"
     else
       echo "#ramdisk=\"/mnt/ramdisk\"" >> "/data/local/linuxonandroid/config.$system"
     fi
-    if [ "$refresh" == "true" ] && [ -z "$autorun" ]; then
+    if [ "$refresh" == "true" ] && [ ! -z "$autorun" ]; then
       echo "autorun=\"$autorun\"" >> "/data/local/linuxonandroid/config.$system"
     else
       echo "#autorun=\"run this on\"" >> "/data/local/linuxonandroid/config.$system"
     fi
-    if [ "$refresh" == "true" ] && [ -z "$mountdefault" ]; then
+    if [ "$refresh" == "true" ] && [ ! -z "$mountdefault" ]; then
       echo "mountdefault=\"$mountdefault\"" >> "/data/local/linuxonandroid/config.$system"
     else
       echo "mountdefault=\"sdcard\" #,intern,android,images,images:default,images:system,images::wireshark,ram" >> "/data/local/linuxonandroid/config.$system"
     fi
-    if [ "$refresh" == "true" ] && [ -z "$shell" ]; then
+    if [ "$refresh" == "true" ] && [ ! -z "$wlan_if" ]; then
+      echo "wlan_if=\"$wlan_if\"" >> "/data/local/linuxonandroid/
+
+    if [ "$refresh" == "true" ] && [ ! -z "$shell" ]; then
       echo "shell=\"$shell\"" >> "/data/local/linuxonandroid/config.$system"
     else
       echo "#shell=\"/bin/bash\"" >> "/data/local/linuxonandroid/config.$system"
@@ -363,6 +367,19 @@ install)
 passwd)
   "$0" mount
   chroot "$mnt" /usr/bin/passwd $2
+
+;;
+space)
+  echo "Memory (RAM):"
+  free
+  echo ""
+  echo "Swap:"
+  cat /proc/swaps
+
+;;
+network)
+  "$0" mount
+  chroot "$mnt" /root/scripts/network.sh "$wlan_if" $@
 
 ;;
 hardinstall)
