@@ -33,13 +33,15 @@ currentscriptpath()
 
 
 while true; do   # Worse workaround for goto
-##---------------------------Check Arguments------------------------##
+while true; do   # Really worse workaround for goto
+##---------------------------Check Arguments--------------------------##
 for (( i=$((BASH_ARGC - 1)); $((i >= 0)); i=$((i - 1)) )); do
   curr_arg="${BASH_ARGV[$i]}"
   if [ -z "$curr_arg" ]; then
     :
-  if [ "$curr_arg" == "-h" ] || [ "$curr_arg" == "--help" ]; then
-    goto HELP
+  elif [ "$curr_arg" == "-h" ] || [ "$curr_arg" == "--help" ]; then
+    arg_help=true
+    break
   elif [ "$(echo "$curr_arg" | head -c 2)" == "--" ];then
     case "$arg" in
     ##-------------------------Architecture---------------------------##
@@ -47,6 +49,12 @@ for (( i=$((BASH_ARGC - 1)); $((i >= 0)); i=$((i - 1)) )); do
       i=$((i - 1))
       architecture="${BASH_ARGV[$i]}"
       arg_arch="true"
+    ;;
+    ##-------------------------Config Path----------------------------##
+    --config)
+      echo "WARNING: Do not change the default config path."
+      i=$((i - 1))
+      config_path="${BASH_ARGV[$i]}"
     ;;
     ##-------------------------System User Home-----------------------##
     --home)
@@ -132,15 +140,15 @@ for (( i=$((BASH_ARGC - 1)); $((i >= 0)); i=$((i - 1)) )); do
       esac
     done
   else
-    arg_system="true"
-    system="${BASH_ARGV[$i]}"
-
     if [ "$((i != 0))" == "1" ]; then
-      echo "WARNING: Did you realy mean: system=$system"
+      echo -n "WARNING: Did you realy mean: system=${BASH_ARGV[$i]} "
       unset accept
       read accept
       if [ "$accept" != "y" ] && [ "$accept" != "Y" ] && [ "$accept" != "yes" ] && [ "$accept" != "Yes" ]; then
         exit 2 #TODO set the standard return value for this case
+      else
+        arg_system="true"
+        system="${BASH_ARGV[$i]}"
       fi  
     fi
 
@@ -160,18 +168,22 @@ kit2="$kit"
 if [ ! -z "$args_checked" ] || [ ! -e "$home/linuxonandroid/config.$system" ]; then
   break
 else
-  . "$home/linuxonandroid/config.$system"
+  . "$home/linuxonandroid/config.$system" # TODO
 
   kit="$kit2"
   args_checked="true"
 fi
 
 done   # Worse workaround for goto
+if [ ! -z "$arg_help" ]; then break; fi   # Really worse workaround for goto
 
 unset kit2
 
 if [ -z "$mnt" ]; then
   mnt="$home/$system"
+fi
+if [ -z "$config_path" ]; then
+  config_path="$home/linuxonandroid"
 fi
 if [ ! -z "$arg_bin" ]; then
   export bin="$arg_bin"
@@ -199,6 +211,20 @@ fi
   #  export HOME="$arg_home"
   #fi
 #fi
+
+if [ ! -e "$config_path/config.default" ]; then
+  echo "Creating config files ..."
+  mkdir -p "$config_path"
+  echo "#sdcard=\"$EXTERNAL_STORAGE\"" > "$config_path/config.default"
+  echo "#intern=\"$EXTERNAL_STORAGE\"" > "$config_path/config.default"
+  echo "#sdcard=\"$SECONDARY_STORAGE\"" > "$config_path/config.default"
+  #echo "#kit=\"$sdcard/linux\"" >> "$config_path/config.default"
+  echo "#home=\"$home\"" >> "$config_path/config.default"
+  echo "#mnt=\"$home/linux\"" >> "$config_path/config.default"
+  echo "#architecture=\"debian\"" >> "$config_path/config.default"
+  echo "#export TERM=screen" >> "$config_path/config.default"
+  echo "#nw_service=ifupdown" >> "$config_path/config.default"
+fi
 ##---------------------------Everything Initialized-----------------------------## TODO length of this line
 
 
@@ -233,21 +259,26 @@ fi
 # Install $system config
 if [ "$arg_init" == "true" ]; then
   if [ -z "$img" ]; then
-    "$bin/$system" install "$system" --noimage $arg_native #--force
+    "$bin/$system" install "$system" --noimage "$arg_native" #--force
   else
-    "$bin/$system" install "$system" "$img" $arg_native #--force
+    "$bin/$system" install "$system" "$img" "$arg_native" #--force
   fi
   exit 0
 elif [ -z "$img" ]; then
   echo "Cannot find the image file. The system will only initialized."
-  "$bin/$system" install "$system" --noimage $arg_native #--force
+  "$bin/$system" install "$system" --noimage "$arg_native" #--force
   exit 6
 else
-  "$bin/$system" install "$system" $arg_native
+  "$bin/$system" install "$system" "$arg_native"
 fi
 
 echo "Mounting the Linux image ..."
 "$bin/$system" mount
+
+if ! mountpoint -q "$mnt"; then
+  echo "Cannot mount the image."
+  exit 7
+fi
 
 echo "Customizing the image ..."
 echo "  Setting DNS Server"
@@ -256,61 +287,15 @@ echo "nameserver 8.8.4.4" >> "$mnt/etc/resolv.conf"
 #echo "  Setting localhost on /etc/hosts "
 #echo "127.0.0.1 localhost" > "$mnt/etc/hosts"
 
-echo "Installing scripts ..."
-echo "  Installing root-scripts ..."
-# install custom root-scripts in $mnt/root/scripts
-mkdir -p "$mnt/root/scripts"
-chmod 755 "$mnt/root/scripts"
-cp -f "$kit/rootfs/root/scripts/"* "$mnt/root/scripts/"
-chmod 755 "$mnt/root/scripts/"*
-
-echo "  Installing user-configs ..."
-if [ -e "$mnt/etc/bash.bashrc" ] && [ ! -e "$mnt/etc/bash.bashrc.bak" ]; then
-  mv "$mnt/etc/bash.bashrc" "$mnt/etc/bash.bashrc.bak"
-fi
-if [ ! -e "$mnt/etc/bash.bashrc" ]; then
-  cp -f "$kit/rootfs/etc/bash.bashrc" "$mnt/etc/bash.bashrc"
-  chmod 644 "$mnt/etc/bash.bashrc"
-  chown root:root "$mnt/etc/bash.bashrc"
-fi
-
-if [ -e "$mnt/etc/bash.bash_aliases" ] && [ ! -e "$mnt/etc/bash.bash_aliases.bak" ]; then
-  mv "$mnt/etc/bash.bash_aliases" "$mnt/etc/bash.bash_aliases.bak"
-fi
-if [ ! -e "$mnt/etc/bash.bashrc_aliases" ]; then
-  cp -f "$kit/rootfs/etc/bash.bashrc_aliases" "$mnt/etc/bash.bashrc_aliases"
-  chmod 644 "$mnt/etc/bash.bashrc_aliases"
-  chown root:root "$mnt/etc/bash.bashrc_aliases"
-fi
-
-cp -f "$kit/rootfs/etc/bash.bashrc" "$mnt/root/.bashrc"
-cp -f "$kit/rootfs/etc/bash.bash_aliases" "$mnt/root/.bash_aliases"
-echo -n "$system" > "$mnt/etc/debian_chroot"
-
-echo "  Installing bin-scripts ..."
-cd "$kit/rootfs/usr/bin"
-for file in *; do
-  cp -f "$file" "$mnt/usr/bin/"
-  chmod 755 "$mnt/usr/bin/$file"
-done
-cd - > /dev/null
-
-if [ ! -e "$home/linuxonandroid/config.default" ]; then
-  echo "Creating config files ..."
-  mkdir -p "$home/linuxonandroid"
-  echo "#sdcard=\"$EXTERNAL_STORAGE\"" > "/data/local/linuxonandroid/config.default"
-  echo "#intern=\"$EXTERNAL_STORAGE\"" > "/data/local/linuxonandroid/config.default"
-  echo "#sdcard=\"$SECONDARY_STORAGE\"" > "/data/local/linuxonandroid/config.default"
-  #echo "#kit=\"$sdcard/linux\"" >> "/data/local/linuxonandroid/config.default"
-  echo "#home=\"$ANDROID_DATA/local\"" >> "/data/local/linuxonandroid/config.default"
-  echo "#mnt=\"$home/linux\"" >> "/data/local/linuxonandroid/config.default"
-  echo "#architecture=\"debian\"" >> "/data/local/linuxonandroid/config.default"
-  echo "#export TERM=screen" >> "/data/local/linuxonandroid/config.default"
-  echo "#loopno=254" >> "/data/local/linuxonandroid/config.default"
+if [ -e "$" ]; then
+  echo "  Installing additional files ..."
+  cd "$kit/rootfs"
+  sh "$kit/rootfs/.install.sh"
+  cd - > /dev/null
 fi
 
 echo "Setting Root Password ..."
-echo "Set new root password? [y/N]"
+echo -n "Set new root password? [y/N] "
 read accept
 if [ "$accept" = "y" ] || [ "$accept" = "Y" ] || [ "$accept" = "yes" ] || [ "$accept" = "Yes" ]; then
   "$bin/$system" passwd root
@@ -319,7 +304,8 @@ fi
 echo "Install finished, Have Fun"
 exit 0
 
-HELP:
+done   # Really worse workaround for goto
+
 name="$(basename "$0")"
 echo -e "$name [-h|--help]\nPrint this help\n"
 echo -e "$name [-s|--system]\nA name for the operating system\n"
