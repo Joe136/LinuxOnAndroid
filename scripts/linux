@@ -36,7 +36,7 @@ currentscriptpath()
 
 getloopno()
 {
-for i in $(seq 250 -1 0); do
+for i in $(seq 255 -1 0); do
   if [ ! -e "/dev/block/loop$i" ]; then
     echo $i
     return
@@ -101,8 +101,9 @@ for (( i=$((BASH_ARGC - 1)); $((i >= 0)); i=$((i - 1)) )); do
   elif [ "$curr_arg" == "-h" ] || [ "$curr_arg" == "--help" ]; then
     arg_help=true
     break
-  elif [ "$(echo "$curr_arg" | head -c 2)" == "--" ];then
-    case "$arg" in
+  #elif [ "$(echo "$curr_arg" | head -c 2)" == "--" ];then
+  elif echo "$curr_arg" | grep -qxE -e '--[a-zA-Z\-\_]+';then
+    case "echo "$curr_arg" | grep -oE -e '--[a-zA-Z\-\_]+'" in
     ##-------------------------Architecture---------------------------##
     #--android)
     #  arg_android="true"
@@ -112,6 +113,11 @@ for (( i=$((BASH_ARGC - 1)); $((i >= 0)); i=$((i - 1)) )); do
       i=$((i - 1))
       architecture="${BASH_ARGV[$i]}"
       arg_arch="true"
+    ;;
+    ##-------------------------Install Path of linux Script-----------##
+    --bin)
+      i=$((i - 1))
+      arg_bin="${BASH_ARGV[$i]}"
     ;;
     ##-------------------------Config Path----------------------------##
     --config)
@@ -157,6 +163,21 @@ for (( i=$((BASH_ARGC - 1)); $((i >= 0)); i=$((i - 1)) )); do
       partition="${BASH_ARGV[$i]}"
       arg_partition="true"
     ;;
+    ##-------------------------System PATH----------------------------##
+    --path)
+      i=$((i - 1))
+      arg_path_abs="${BASH_ARGV[$i]}"
+    ;;
+    ##-------------------------System PATH----------------------------##
+    --post-path)
+      i=$((i - 1))
+      arg_path_post="${BASH_ARGV[$i]}"
+    ;;
+    ##-------------------------System PATH----------------------------##
+    --pre-path)
+      i=$((i - 1))
+      arg_path_pre="${BASH_ARGV[$i]}"
+    ;;
     ##-------------------------System Name----------------------------##
     --system)
       if [ "$1" == "install" ]; then
@@ -166,37 +187,17 @@ for (( i=$((BASH_ARGC - 1)); $((i >= 0)); i=$((i - 1)) )); do
         system="${BASH_ARGV[$i]}"
       fi
     ;;
+    ##-------------------------System TERM----------------------------##
+    --term)
+      i=$((i - 1))
+      arg_term="${BASH_ARGV[$i]}"
+    ;;
     ##-------------------------System Name----------------------------##
     --type)
       # The script must be installed or renamed to work correctly
       arg_imgtype="true"
       i=$((i - 1))
       imgtype="${BASH_ARGV[$i]}"
-    ;;
-    ##-------------------------Install Path of linux Script-----------##
-    --bin)
-      i=$((i - 1))
-      arg_bin="${BASH_ARGV[$i]}"
-    ;;
-    ##-------------------------System TERM----------------------------##
-    --term)
-      i=$((i - 1))
-      arg_term="${BASH_ARGV[$i]}"
-    ;;
-    ##-------------------------System PATH----------------------------##
-    --path)
-      i=$((i - 1))
-      arg_path_abs="${BASH_ARGV[$i]}"
-    ;;
-    ##-------------------------System PATH----------------------------##
-    --pre-path)
-      i=$((i - 1))
-      arg_path_pre="${BASH_ARGV[$i]}"
-    ;;
-    ##-------------------------System PATH----------------------------##
-    --post-path)
-      i=$((i - 1))
-      arg_path_post="${BASH_ARGV[$i]}"
     ;;
     ##-------------------------Unknown Argument-----------------------##
     #*)
@@ -205,9 +206,26 @@ for (( i=$((BASH_ARGC - 1)); $((i >= 0)); i=$((i - 1)) )); do
     #  exit 2 #TODO set the standard return value for this case
     #;;
     esac
+  elif echo "$curr_arg" | grep -qxE -e '--[a-zA-Z\-\_]+=';then
+    case "$(echo "$curr_arg" | grep -oE -e '--[a-zA-Z\-\_]+=')" in
+    ##-------------------------Port for SSH---------------------------##
+    --ssh-port=)
+      sshport="$(echo "$curr_arg" | awk -F "=" '{print $2}')"
+      if ! echo "$sshport" | grep -qE -e '^[0-6]?[0-9]?[0-9]?[0-9]?[0-9]'; then # FIXME this is not correct
+        echo "ERROR: Wrong port."
+        exit 2
+      fi
+      if [ "$((sshport > 0 && sshport <= 65535))" == "1" ]; then
+        echo "ERROR: Wrong port."
+        exit 2
+      fi
+    ;;
+    esac
   elif [ "$(echo -"$curr_arg" | head -c 2)" == "--" ];then
-    args="$(echo -"$curr_arg" | awk 'BEGIN{FS=""}{ for (i = 3; i <= NF; ++i) print $i; }')"
-  
+  elif echo "$curr_arg" | grep -qxE -e '-[a-zA-Z]+';then
+    #args="$(echo -"$curr_arg" | awk 'BEGIN{FS=""}{ for (i = 3; i <= NF; ++i) print $i; }')"
+    args="$(echo "$curr_arg" | grep -oE -e '-[a-zA-Z]+')"
+
     for arg in `echo -e "$args"`; do
       case "$arg" in
     ##-------------------------System Name----------------------------##
@@ -224,8 +242,13 @@ for (( i=$((BASH_ARGC - 1)); $((i >= 0)); i=$((i - 1)) )); do
       #;;
       esac
     done
-  #else
+  else
     ##-------------------------Unknown Argument-----------------------##
+    if [ -z "$arg_rest" ]; then
+      arg_rest="$curr_arg" # FIXME args with linebreaks
+    else
+      arg_rest="$arg_rest\n$curr_arg"
+    fi
     #echo -e "$0: unknown argument: $curr_arg\n"
     #"$0" -h
     #exit 2 #TODO set the standard return value for this case
@@ -245,7 +268,7 @@ mount)
   if mount | grep -q " $mnt "; then
     echo "$img already mounted"
     #if [ "$arg_android" == "true" ] && $(mount | ! grep -q " $mnt/mnt/data "); then
-    #if [ "$arg_android" == "true" ] && ! mountpoint -q "$mnt/mnt/data "; then
+    #if [ "$arg_android" == "true" ] && ! mountpoint -q "$mnt/mnt/data"; then
     #  echo "Mounting: System Parts ..."
     #  mount -o bind "$ANDROID_DATA" "$mnt/mnt/data"
     #  mount -o bind "$ANDROID_ROOT" "$mnt/mnt/system"
@@ -271,9 +294,7 @@ mount)
     mount -t "$imgtype" $imgoptions "$partition" "$mnt"
   else
     echo "Mounting: Loopback mount ..."
-    if [ ! -d "$mnt" ]; then
-      mkdir "$mnt"
-    fi
+    mkdir -p "$mnt"
 
     loopno=$(getloopno)
     loop="/dev/block/loop$loopno"
@@ -301,45 +322,47 @@ mount)
 
   if [ ! -z "$mountdefault" ]; then
     for comm in $(echo "$mountdefault" | awk 'BEGIN{FS=","}{print $0}'); do
-      if [ "$comm" == "sdcard" ]; then
-        "$0" mountsd
+      if [ "$comm" == "sdcard" ]; then # TODO
+        #make the SD card accessible to the chroot environment
+        mkdir -p "$mnt/mnt/sdcard"
+        #mount -o bind $sdcard "$mnt/media/sdcard"
+        mount_point=$(df -P | awk '$6=="'$sdcard'" {print $1}')
+        mount -t vfat -o rw,dirsync,suid,exec,relatime "$mount_point" "$mnt/mnt/sdcard"
       elif [ "$comm" == "intern" ]; then
-      elif [ "$comm" == "android" ]; then
+      #elif [ "$comm" == "android" ]; then
       elif [ "$comm" == "images" ]; then
+        "$0" mountimg $@
       fi
     done
-  #make the SD card accessible to the chroot environment
-  mkdir -p "$mnt/mnt/sdcard"
-  #mount -o bind $sdcard "$mnt/media/sdcard"
-  mountpoint=$(df -P | awk '$6=="'$sdcard'" {print $1}')
-  mount -t vfat -o rw,dirsync,suid,exec,relatime "$mountpoint" "$mnt/mnt/sdcard"
 
-  if [ "$2" = "android" ]; then
-    echo "Mounting: System Parts ..."
-    mount -o bind $ANDROID_DATA "$mnt/mnt/data"
-    mount -o bind $ANDROID_ROOT "$mnt/mnt/system"
-    #if [ -d "/sbin" ]; then
-    #  mount -o bind /sbin "$mnt/mnt/sbin"
+    #if [ "$2" = "android" ]; then
+    #  echo "Mounting: System Parts ..."
+    #  mount -o bind $ANDROID_DATA "$mnt/mnt/data"
+    #  mount -o bind $ANDROID_ROOT "$mnt/mnt/system"
+    #  #if [ -d "/sbin" ]; then
+    #  #  mount -o bind /sbin "$mnt/mnt/sbin"
+    #  #fi
     #fi
-  fi
   fi
 
   echo "	[ Done ]"
 
 ;;
 umount|unmount)
-  echo "Kill running processes"
+  loop="$(mountpoint -n /data/local/linux/ | cut -sd' ' -f1)"
+  if ! losetup "$loop" > /dev/null 2>&1; then
+    unset loop
+  fi
 
-  fuser -km "$mnt"
+  sys_pid="$(ps -o pid,comm | awk '/zygote/ {print $1}')"
+  mnt_pid="$(fuser -m "$mnt")"
+
+  echo "Kill running processes"
+  #fuser -km "$mnt" # TODO replace with include list
   echo "Unmounting ..."
+  "$0" umountimg $@
   #awk '{print $2}' /proc/mounts | grep "^$mnt" | sort -r | xargs umount
-  cut -sd' ' -f2 /proc/mounts | grep "^$mnt" | sort -r | xargs umount
-  #umount "$mnt/mnt/sdcard"
-  #umount "$mnt/sys"
-  #umount "$mnt/proc"
-  #umount "$mnt/dev/pts"
-  #umount "$mnt/dev"
-  #umount "$mnt"
+  cut -sd' ' -f2 /proc/mounts | grep "^$mnt" | sort -r | awk '{system("umount -fl \"" $0 "\"")}'
 
   if [ -e "$loop" ]; then
     echo "Unmounting: Loopback mount ..."
@@ -349,12 +372,11 @@ umount|unmount)
 
 ;;
 mountsd)
-  if mount | ! grep -q " $mnt "; then
+  if ! mountpoint -q "$mnt"; then
     echo "$img not mounted"
     exit 3
   fi
-
-  if mount | grep -q " $mnt/mnt/sdcard "; then
+  if mountpoint -q "$mnt/mnt/sdcard"; then
     echo "$mnt/mnt/sdcard already mounted"
     exit 4
   fi
@@ -363,15 +385,15 @@ mountsd)
   mkdir -p "$mnt/mnt/sdcard"
 
   #mount -o bind "$sdcard" "$mnt/media/sdcard"
-  mountpoint=$(df -P | awk '$6=="'$sdcard'" {print $1}')
-  mount -t vfat -o rw,dirsync,suid,exec,relatime "$mountpoint" "$mnt/mnt/sdcard"
+  mount_point=$(df -P | awk '$6=="'$sdcard'" {print $1}')
+  mount -t vfat -o rw,dirsync,suid,exec,relatime "$mount_point" "$mnt/mnt/sdcard"
 
 ;;
 umountsd|unmountsd)
   echo "Kill running processes"
   fuser -km "$mnt/mnt/sdcard"
   echo "Unmounting ..."
-  umount -f "$mnt/mnt/sdcard"
+  umount -fl "$mnt/mnt/sdcard"
 
 ;;
 mountimg)
@@ -440,12 +462,12 @@ umountram)
 ;;
 chroot|"")
   "$0" mount
-  chroot "$mnt" $shell
+  chroot "$arg_user" "$mnt" $shell
 
 ;;
 ssh)
   "$0" mount
-  chroot "$mnt" /root/scripts/ssh.sh $2
+  chroot "$mnt" /root/scripts/ssh.sh "$arg_port" "$arg_rest"
 
 ;;
 vnc)
@@ -518,6 +540,11 @@ install)
       echo "ramdisk=\"$ramdisk\"" >> "$home/linuxonandroid/config.$system"
     else
       echo "#ramdisk=\"/mnt/ramdisk\"" >> "/data/local/linuxonandroid/config.$system"
+    fi
+    if [ "$refresh" == "true" ] && [ ! -z "$sshport" ]; then
+      echo "sshport=\"$sshport\"" >> "$home/linuxonandroid/config.$system"
+    else
+      echo "#sshport=\"22\"" >> "/data/local/linuxonandroid/config.$system"
     fi
     if [ "$refresh" == "true" ] && [ ! -z "$autorun" ]; then
       echo "autorun=\"$autorun\"" >> "/data/local/linuxonandroid/config.$system"
