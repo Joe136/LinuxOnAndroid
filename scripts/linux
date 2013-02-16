@@ -9,6 +9,7 @@ mnt="$ANDROID_DATA/local/$system"
 imgtype="ext2"
 shell="/bin/bash"
 ramdisk="/mnt/ramdisk"
+command[0]="$1"
 
 export xbin="$ANDROID_ROOT/xbin"
 export PATH="$xbin:/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:$PATH"
@@ -48,9 +49,10 @@ done
 #img="$kit/$system.img"
 
 
-if [ "$1" != "install" ]; then
+if [ "$command" != "install" ]; then
   ##-------------------------Check Arguments--------------------------##
-  for (( i=$((BASH_ARGC - 1)); $((i >= 0)); i=$((i - 1)) )); do
+  #for (( i=$((BASH_ARGC - 1)); $((i >= 0)); i=$((i - 1)) )); do
+  for (( i=$((-1)); $((i >= -BASH_ARGC)); i=$((i - 1)) )); do
     if [ "$(echo "${BASH_ARGV[$i]}" | head -c 2)" == "--" ];then
       case "$arg" in
       ##-----------------------Config Path----------------------------##
@@ -94,7 +96,8 @@ fi
 
 
 ##---------------------------Check Arguments--------------------------##
-for (( i=$((BASH_ARGC - 1)); $((i >= 0)); i=$((i - 1)) )); do
+#for (( i=$((BASH_ARGC - 1)); $((i >= 0)); i=$((i - 1)) )); do
+for (( i=$((-1)); $((i >= -BASH_ARGC)); i=$((i - 1)) )); do
   curr_arg="${BASH_ARGV[$i]}"
   if [ -z "$curr_arg" ]; then
     :
@@ -102,8 +105,8 @@ for (( i=$((BASH_ARGC - 1)); $((i >= 0)); i=$((i - 1)) )); do
     arg_help=true
     break
   #elif [ "$(echo "$curr_arg" | head -c 2)" == "--" ];then
-  elif echo "$curr_arg" | grep -qxE -e '--[a-zA-Z\-\_]+';then
-    case "echo "$curr_arg" | grep -oE -e '--[a-zA-Z\-\_]+'" in
+  elif echo "$curr_arg" | grep -qxE -e '--[a-zA-Z][a-zA-Z\-\_]+';then
+    case "$(echo "$curr_arg" | grep -oE -e '--[a-zA-Z][a-zA-Z\-\_]+')" in
     ##-------------------------Architecture---------------------------##
     #--android)
     #  arg_android="true"
@@ -124,6 +127,10 @@ for (( i=$((BASH_ARGC - 1)); $((i >= 0)); i=$((i - 1)) )); do
       echo "WARNING: Do not change the default config path."
       i=$((i - 1))
       config_path="${BASH_ARGV[$i]}"
+    ;;
+    ##-------------------------Initialize-----------------------------##
+    --force)
+      arg_force="true"
     ;;
     ##-------------------------System User Home-----------------------##
     --home)
@@ -179,8 +186,12 @@ for (( i=$((BASH_ARGC - 1)); $((i >= 0)); i=$((i - 1)) )); do
       arg_path_pre="${BASH_ARGV[$i]}"
     ;;
     ##-------------------------System Name----------------------------##
+    --refresh)
+      refresh="true"
+    ;;
+    ##-------------------------System Name----------------------------##
     --system)
-      if [ "$1" == "install" ]; then
+      if [ "$command" == "install" ]; then
         # The script must be installed or renamed to work correctly
         arg_system="true"
         i=$((i - 1))
@@ -206,8 +217,8 @@ for (( i=$((BASH_ARGC - 1)); $((i >= 0)); i=$((i - 1)) )); do
     #  exit 2 #TODO set the standard return value for this case
     #;;
     esac
-  elif echo "$curr_arg" | grep -qxE -e '--[a-zA-Z\-\_]+=';then
-    case "$(echo "$curr_arg" | grep -oE -e '--[a-zA-Z\-\_]+=')" in
+  elif echo "$curr_arg" | grep -qxE -e '--[a-zA-Z][a-zA-Z\-\_]+=';then
+    case "$(echo "$curr_arg" | grep -oE -e '--[a-zA-Z][a-zA-Z\-\_]+=')" in
     ##-------------------------Port for SSH---------------------------##
     --ssh-port=)
       sshport="$(echo "$curr_arg" | awk -F "=" '{print $2}')"
@@ -220,11 +231,23 @@ for (( i=$((BASH_ARGC - 1)); $((i >= 0)); i=$((i - 1)) )); do
         exit 2
       fi
     ;;
+    ##-------------------------Port for SSH---------------------------##
+    --vnc-port=)
+      vncport="$(echo "$curr_arg" | awk -F "=" '{print $2}')"
+      if ! echo "$sshport" | grep -qE -e '^[0-6]?[0-9]?[0-9]?[0-9]?[0-9]'; then # FIXME this is not correct
+        echo "ERROR: Wrong port."
+        exit 2
+      fi
+      if [ "$((sshport > 0 && sshport <= 65535))" == "1" ]; then
+        echo "ERROR: Wrong port."
+        exit 2
+      fi
+    ;;
     esac
-  elif [ "$(echo -"$curr_arg" | head -c 2)" == "--" ];then
-  elif echo "$curr_arg" | grep -qxE -e '-[a-zA-Z]+';then
+  #elif [ "$(echo -"$curr_arg" | head -c 2)" == "--" ];then
+  elif echo -"$curr_arg" | grep -qxE -e '--[a-zA-Z]+';then
     #args="$(echo -"$curr_arg" | awk 'BEGIN{FS=""}{ for (i = 3; i <= NF; ++i) print $i; }')"
-    args="$(echo "$curr_arg" | grep -oE -e '-[a-zA-Z]+')"
+    args="$(echo -"$curr_arg" | grep -oE -e '--[a-zA-Z]+')"
 
     for arg in `echo -e "$args"`; do
       case "$arg" in
@@ -257,8 +280,11 @@ done
 
 
 
+while true; do
 
-case "$1" in
+comm="$(echo "$command" | head-n 1)"
+
+case "$comm" in
 mount)
   if [ ! -e "$config_path/config.$system" ]; then
     "$0" install "$system"
@@ -299,7 +325,7 @@ mount)
     loopno=$(getloopno)
     loop="/dev/block/loop$loopno"
     if [ "$loopno" == "" ]; then
-      echo "could not mount image, no free loop-devices found"
+      echo "Error: Could not mount image, no free loop-devices found"
       exit 6
     fi
     #if [ -e "$loop" ]; then
@@ -312,6 +338,11 @@ mount)
     losetup "$loop" "$img"
     mount -t "$imgtype" $imgoptions "$loop" "$mnt"
     touch "$img"
+  fi
+
+  if ! mountpoint -q "$mnt"; then
+    echo "Error: Could not mount image, unknown problem"
+    exit 7
   fi
 
   echo "Mounting: Setting up chroot environment ..."
@@ -349,51 +380,141 @@ mount)
 
 ;;
 umount|unmount)
-  loop="$(mountpoint -n /data/local/linux/ | cut -sd' ' -f1)"
-  if ! losetup "$loop" > /dev/null 2>&1; then
-    unset loop
-  fi
+  "$0" umountimg $@
 
-  sys_pid="$(ps -o pid,comm | awk '/zygote/ {print $1}')"
+  #loop="$(mountpoint -n "$mnt" | cut -sd' ' -f1)"
+  #if ! losetup "$loop" > /dev/null 2>&1; then
+  #  unset loop
+  #fi
+
+  mounts="$(cut -sd' ' -f2 /proc/mounts | grep "^$mnt" | sort -r)"
+
+  for m in $mounts; do
+    if losetup "$(mountpoint -n "$m" | cut -sd' ' -f1)" > /dev/null 2>&1; then
+      loop="$loop\n`losetup "$(mountpoint -n "$m" | cut -sd' ' -f1)"`"
+    fi
+  done
+
+  sys_pid="$(ps -o pid,comm | awk '/zygote/ || /'$$'/ {print $1}')"
   mnt_pid="$(fuser -m "$mnt")"
 
   echo "Kill running processes"
   #fuser -km "$mnt" # TODO replace with include list
-  echo "Unmounting ..."
-  "$0" umountimg $@
-  #awk '{print $2}' /proc/mounts | grep "^$mnt" | sort -r | xargs umount
-  cut -sd' ' -f2 /proc/mounts | grep "^$mnt" | sort -r | awk '{system("umount -fl \"" $0 "\"")}'
+  for proc in $mnt_pid; do
+    unset temp1
+    for p in $sys_pid; do
+      if [ "$proc" == "$p" ]; then
+        temp1="true"
+        break
+      fi
+    done
+    kill -s 9 "$proc"
+  done
 
-  if [ -e "$loop" ]; then
-    echo "Unmounting: Loopback mount ..."
-    losetup -d "$loop"
-    rm "$loop"
-  fi
+  echo "Unmounting ..."
+  #awk '{print $2}' /proc/mounts | grep "^$mnt" | sort -r | xargs umount
+  #cut -sd' ' -f2 /proc/mounts | grep "^$mnt" | sort -r | awk '{system("umount -fl \"" $0 "\"")}'
+
+  for m in $mounts; do
+    # Unmount more and more aggressive
+    umount "$m"
+    mountpoint -q "$m" && umount -f "$m"
+    mountpoint -q "$m" && umount -fl "$m"
+  done
+
+  echo "Unmounting: Loopback unmount ..."
+  for l in $loop; do
+    losetup -d "$l"
+    rm "$l"
+  done
 
 ;;
 mountsd)
+  #make the SD card accessible to the chroot environment
+  if [ -z "$sdcard" ] &&  [ -z "$intern" ]; then
+    echo "No media found for mounting"
+    exit 8
+  fi
+
   if ! mountpoint -q "$mnt"; then
     echo "$img not mounted"
     exit 3
   fi
-  if mountpoint -q "$mnt/mnt/sdcard"; then
-    echo "$mnt/mnt/sdcard already mounted"
-    exit 4
+
+  if [ -n "$sdcard" ]; then
+    mkdir -p "$mnt/mnt/sdcard"
+
+    if mountpoint -q "$mnt/mnt/sdcard"; then
+      echo "$mnt/mnt/sdcard already mounted"
+    else
+      mount_point=$(df -P | awk '$6=="'$sdcard'" {print $1}')
+      mount -t vfat -o rw,dirsync,suid,exec,relatime "$mount_point" "$mnt/mnt/sdcard"
+    fi
   fi
 
-  #make the SD card accessible to the chroot environment
-  mkdir -p "$mnt/mnt/sdcard"
+  if [ -n "$intern" ]; then
+    mkdir -p "$mnt/mnt/intern"
 
-  #mount -o bind "$sdcard" "$mnt/media/sdcard"
-  mount_point=$(df -P | awk '$6=="'$sdcard'" {print $1}')
-  mount -t vfat -o rw,dirsync,suid,exec,relatime "$mount_point" "$mnt/mnt/sdcard"
+    if mountpoint -q "$mnt/mnt/intern"; then
+      echo "$mnt/mnt/intern already mounted"
+    else
+      mount_point=$(df -P | awk '$6=="'$intern'" {print $1}')
+      mount -t vfat -o rw,dirsync,suid,exec,relatime "$mount_point" "$mnt/mnt/intern"
+    fi
+  fi
 
 ;;
 umountsd|unmountsd)
-  echo "Kill running processes"
-  fuser -km "$mnt/mnt/sdcard"
-  echo "Unmounting ..."
-  umount -fl "$mnt/mnt/sdcard"
+  mounts="$(cut -sd' ' -f2 /proc/mounts | grep "^$mnt/mnt/sdcard" | sort -r)"
+  mounts="$mounts\n$(cut -sd' ' -f2 /proc/mounts | grep "^$mnt/mnt/intern" | sort -r)"
+
+  if [ -z "$mounts" ]; then
+    else "Nothing to unmount"
+  else
+    for m in $mounts; do
+      if losetup "$(mountpoint -n "$m" | cut -sd' ' -f1)" > /dev/null 2>&1; then
+        loop="$loop\n`losetup "$(mountpoint -n "$m" | cut -sd' ' -f1)"`"
+      fi
+    done
+
+    sys_pid="$(ps -o pid,comm | awk '/zygote/ || /'$$'/ {print $1}')"
+    mnt_pid="$(fuser -m "$mnt/mnt/sdcard")"
+    mnt_pid="$mnt_pid\n$(fuser -m "$mnt/mnt/intern")"
+
+    echo "Kill running processes"
+    for proc in $mnt_pid; do
+      unset temp1
+      for p in $sys_pid; do
+        if [ "$proc" == "$p" ]; then
+          temp1="true"
+          break
+        fi
+      done
+      kill -s 9 "$proc"
+    done
+
+    echo "Unmounting ..."
+    #awk '{print $2}' /proc/mounts | grep "^$mnt" | sort -r | xargs umount
+    #cut -sd' ' -f2 /proc/mounts | grep "^$mnt" | sort -r | awk '{system("umount -fl \"" $0 "\"")}'
+
+    for m in $mounts; do
+      # Unmount more and more aggressive
+      umount "$m"
+      mountpoint -q "$m" && umount -f "$m"
+      mountpoint -q "$m" && umount -fl "$m"
+    done
+
+    echo "Unmounting: Loopback unmount ..."
+    for l in $loop; do
+      losetup -d "$l"
+      rm "$l"
+    done
+  fi
+
+  #echo "Kill running processes"
+  #fuser -km "$mnt/mnt/sdcard"
+  #echo "Unmounting ..."
+  #umount -fl "$mnt/mnt/sdcard"
 
 ;;
 mountimg)
@@ -438,16 +559,69 @@ mountimg)
 
 ;;
 umountimg|unmountimg)
-#  echo "Kill running processes"
-#  fuser -km "$mnt/mnt/sdcard"
-#  echo "Unmounting ..."
-#  umount -f "$mnt/mnt/sdcard"
+  sys_pid="$(ps -o pid,comm | awk '/zygote/ || /'$$'/ {print $1}')"
+  unset IFS
+  conffiles=default'
+'"$system"
+  for mountconf in $conffiles; do
+    if [ -e "/data/local/linuxonandroid/mount.$mountconf" ]; then
+      for line in $(cat "/data/local/linuxonandroid/mount.$mountconf" | awk '{print $0}'); do
+        IFS=":"
+        target="$mnt/$(echo $line | awk '{ print $2 }')"
+        unset IFS
+
+        # Continue if not mounted
+        ! mountpoint -q "$target" && continue
+
+        mounts="$(cut -sd' ' -f2 /proc/mounts | grep "^$target" | sort -r)"
+        mnt_pid="$(fuser -m "$target")"
+
+        # Something's going wrong
+        [[ -z "$mounts" ]] && continue
+
+        for m in $mounts; do
+          if losetup "$(mountpoint -n "$m" | cut -sd' ' -f1)" > /dev/null 2>&1; then
+            loop="$loop\n`losetup "$(mountpoint -n "$m" | cut -sd' ' -f1)"`"
+          fi
+        done
+
+        echo "Kill running processes"
+        for proc in $mnt_pid; do
+          unset temp1
+          for p in $sys_pid; do
+            if [ "$proc" == "$p" ]; then
+              temp1="true"
+              break
+            fi
+          done
+          kill -s 9 "$proc"
+        done
+
+        echo "Unmounting ..."
+        for m in $mounts; do
+          # Unmount more and more aggressive
+          umount "$m"
+          mountpoint -q "$m" && umount -f "$m"
+          mountpoint -q "$m" && umount -fl "$m"
+        done
+    
+        echo "Unmounting: Loopback unmount ..."
+        for l in $loop; do
+          losetup -d "$l"
+          rm "$l"
+        done
+      done
+    fi
+  done
 
 ;;
 mountram)
-  if mount | ! grep -q " $mnt "; then
+  if ! mountpoint -q "$mnt"; then
     echo "$img not mounted"
     exit 5
+  elif mountpoint -q "$mnt/$ramdisk"; then
+    echo "$mnt/$ramdisk already mounted"
+    exit 8
   fi
 
   mount -t ramfs ramfs "$mnt/$ramdisk"
@@ -457,21 +631,21 @@ umountram)
 #  echo "Kill running processes"
 #  fuser -km "$mnt/$ramdisk"
   echo "Unmounting ..."
-  umount -f "$mnt/$ramdisk"
+  mountpoint -q "$mnt/$ramdisk" && umount -fl "$mnt/$ramdisk"
 
 ;;
 chroot|"")
-  "$0" mount
+  "$0" mount # FIXME set the arguments
   chroot "$arg_user" "$mnt" $shell
 
 ;;
 ssh)
-  "$0" mount
+  "$0" mount # FIXME set the arguments
   chroot "$mnt" /root/scripts/ssh.sh "$arg_port" "$arg_rest"
 
 ;;
 vnc)
-  "$0" mount
+  "$0" mount # FIXME set the arguments
   chroot "$mnt" /root/scripts/vnc.sh $2 $3
 
 ;;
@@ -638,3 +812,6 @@ help)
 
 ;;
 esac
+
+break
+done

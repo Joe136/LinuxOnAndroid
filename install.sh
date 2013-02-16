@@ -35,7 +35,8 @@ currentscriptpath()
 while true; do   # Worse workaround for goto
 while true; do   # Really worse workaround for goto
 ##---------------------------Check Arguments--------------------------##
-for (( i=$((BASH_ARGC - 1)); $((i >= 0)); i=$((i - 1)) )); do
+#for (( i=$((BASH_ARGC - 1)); $((i >= 0)); i=$((i - 1)) )); do
+for (( i=$((-1)); $((i >= -BASH_ARGC)); i=$((i - 1)) )); do
   curr_arg="${BASH_ARGV[$i]}"
   if [ -z "$curr_arg" ]; then
     :
@@ -49,6 +50,11 @@ for (( i=$((BASH_ARGC - 1)); $((i >= 0)); i=$((i - 1)) )); do
       i=$((i - 1))
       architecture="${BASH_ARGV[$i]}"
       arg_arch="true"
+    ;;
+    ##-------------------------Install Path of linux Script-----------##
+    --bin)
+      i=$((i - 1))
+      arg_bin="${BASH_ARGV[$i]}"
     ;;
     ##-------------------------Config Path----------------------------##
     --config)
@@ -82,22 +88,6 @@ for (( i=$((BASH_ARGC - 1)); $((i >= 0)); i=$((i - 1)) )); do
     --native)
       arg_native="--native"
     ;;
-    ##-------------------------System Name----------------------------##
-    --system)
-      arg_system="true"
-      i=$((i - 1))
-      system="${BASH_ARGV[$i]}"
-    ;;
-    ##-------------------------Install Path of linux Script-----------##
-    --bin)
-      i=$((i - 1))
-      arg_bin="${BASH_ARGV[$i]}"
-    ;;
-    ##-------------------------System TERM----------------------------##
-    --term)
-      i=$((i - 1))
-      arg_term="${BASH_ARGV[$i]}"
-    ;;
     ##-------------------------System PATH----------------------------##
     --path)
       i=$((i - 1))
@@ -112,6 +102,21 @@ for (( i=$((BASH_ARGC - 1)); $((i >= 0)); i=$((i - 1)) )); do
     --post-path)
       i=$((i - 1))
       arg_path_post="${BASH_ARGV[$i]}"
+    ;;
+    ##-------------------------System Name----------------------------##
+    --system)
+      arg_system="true"
+      i=$((i - 1))
+      system="${BASH_ARGV[$i]}"
+    ;;
+    ##-------------------------System TERM----------------------------##
+    --term)
+      i=$((i - 1))
+      arg_term="${BASH_ARGV[$i]}"
+    ;;
+    ##-------------------------Install Path of linux Script-----------##
+    --update)
+      arg_refresh="--refresh"
     ;;
     ##-------------------------Unknown Argument-----------------------##
     *)
@@ -259,17 +264,17 @@ fi
 # Install $system config
 if [ "$arg_init" == "true" ]; then
   if [ -z "$img" ]; then
-    "$bin/$system" install "$system" --noimage "$arg_native" #--force
+    "$bin/$system" install "$system" --noimage "$arg_native" "$arg_refresh" #--force
   else
-    "$bin/$system" install "$system" "$img" "$arg_native" #--force
+    "$bin/$system" install "$system" "$img" "$arg_native" "$arg_refresh" #--force
   fi
   exit 0
 elif [ -z "$img" ]; then
   echo "Cannot find the image file. The system will only initialized."
-  "$bin/$system" install "$system" --noimage "$arg_native" #--force
+  "$bin/$system" install "$system" --noimage "$arg_native" "$arg_refresh" #--force
   exit 6
 else
-  "$bin/$system" install "$system" "$arg_native"
+  "$bin/$system" install "$system" "$arg_native" "$arg_refresh"
 fi
 
 echo "Mounting the Linux image ..."
