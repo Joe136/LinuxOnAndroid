@@ -5,7 +5,6 @@
 #sdcard="$(readlink -f /sdcard)"
 home="$ANDROID_DATA/local"
 system="$(basename $0)"
-mnt="$ANDROID_DATA/local/$system"
 imgtype="ext2"
 shell="/bin/bash"
 ramdisk="/mnt/ramdisk"
@@ -165,6 +164,10 @@ for (( i=$((-1)); $((i >= -BASH_ARGC)); i=$((i - 1)) )); do
       native="true"
     ;;
     ##-------------------------Use native mount-----------------------##
+    --noimage)
+      arg_noimage="true"
+    ;;
+    ##-------------------------Use native mount-----------------------##
     --partition)
       i=$((i - 1))
       partition="${BASH_ARGV[$i]}"
@@ -187,7 +190,7 @@ for (( i=$((-1)); $((i >= -BASH_ARGC)); i=$((i - 1)) )); do
     ;;
     ##-------------------------System Name----------------------------##
     --refresh)
-      refresh="true"
+      arg_refresh="true"
     ;;
     ##-------------------------System Name----------------------------##
     --system)
@@ -231,7 +234,7 @@ for (( i=$((-1)); $((i >= -BASH_ARGC)); i=$((i - 1)) )); do
         exit 2
       fi
     ;;
-    ##-------------------------Port for SSH---------------------------##
+    ##-------------------------Port for VNC---------------------------##
     --vnc-port=)
       vncport="$(echo "$curr_arg" | awk -F "=" '{print $2}')"
       if ! echo "$sshport" | grep -qE -e '^[0-6]?[0-9]?[0-9]?[0-9]?[0-9]'; then # FIXME this is not correct
@@ -269,8 +272,10 @@ for (( i=$((-1)); $((i >= -BASH_ARGC)); i=$((i - 1)) )); do
     ##-------------------------Unknown Argument-----------------------##
     if [ -z "$arg_rest" ]; then
       arg_rest="$curr_arg" # FIXME args with linebreaks
+      arg_rest2="\'$curr_arg\'" # FIXME args with linebreaks
     else
       arg_rest="$arg_rest\n$curr_arg"
+      arg_rest2="$arg_rest2 \'$curr_arg\'"
     fi
     #echo -e "$0: unknown argument: $curr_arg\n"
     #"$0" -h
@@ -279,12 +284,24 @@ for (( i=$((-1)); $((i >= -BASH_ARGC)); i=$((i - 1)) )); do
 done
 
 
+if [ "$command" != "install" ]; then
+  [ -z "$mnt" ] && mnt="$home/$system"
+fi
+if [ -z "$config_path" ]; then
+  config_path="$home/linuxonandroid"
+fi
+
 
 while true; do
 
-comm="$(echo "$command" | head-n 1)"
+tmp_len="${#command[@]}"
+tmp_len="${{tmp_len - 1}}"
+[[ "$tmp_len" == "-1" ]] && break
 
-case "$comm" in
+tmp_commamd="${command[$tmp_len]}"
+unset ${command[$tmp_len]}
+
+case "$tmp_command" in
 mount)
   if [ ! -e "$config_path/config.$system" ]; then
     "$0" install "$system"
@@ -302,7 +319,7 @@ mount)
     #  #  mount -o bind /sbin "$mnt/mnt/sbin"
     #  #fi
     #fi
-    exit 2
+    continue
   fi
 
   echo "Mounting: Prepwork ..."
@@ -635,124 +652,149 @@ umountram)
 
 ;;
 chroot|"")
-  "$0" mount # FIXME set the arguments
+  if [ -z "$tmp_chroot" ]; then
+    tmp_chroot="true"
+    command[${#command[@]}]="mount"
+    command[${#command[@]}]="chroot"
+    continue
+  fi
+  #"$0" mount # FIXME set the arguments
+
+  cd "$mnt"
   chroot "$arg_user" "$mnt" $shell
 
 ;;
 ssh)
-  "$0" mount # FIXME set the arguments
-  chroot "$mnt" /root/scripts/ssh.sh "$arg_port" "$arg_rest"
+  if [ -z "$tmp_ssh" ]; then
+    tmp_ssh="true"
+    command[${#command[@]}]="mount"
+    command[${#command[@]}]="ssh"
+    continue
+  fi
+  #"$0" mount # FIXME set the arguments
+
+  cd "$mnt"
+  chroot "$mnt" /root/scripts/ssh.sh "$sshport" $arg_rest2
+  #eval chroot "$mnt" /root/scripts/ssh.sh "$sshport" $arg_rest2
 
 ;;
 vnc)
-  "$0" mount # FIXME set the arguments
-  chroot "$mnt" /root/scripts/vnc.sh $2 $3
+  if [ -z "$tmp_vnc" ]; then
+    tmp_vnc="true"
+    command[${#command[@]}]="mount"
+    command[${#command[@]}]="vnc"
+    continue
+  fi
+  #"$0" mount # FIXME set the arguments
+
+  cd "$mnt"
+  chroot "$mnt" /root/scripts/vnc.sh "$sshport" $arg_rest2
+  #eval chroot "$mnt" /root/scripts/vnc.sh "$sshport" $arg_rest2
 
 ;;
 install)
-  if [ "$2" != "" ]; then
-    system="$2"
+  [[ -z "$mountdefault" ]] && mountdefault="sdcard"
+  [[ -z "$mountdefault" ]] && mountdefault="sdcard"
+
+  if [ "$arg_refresh" == "true" ] && [ -e "$config_path/config.$system" ]; then
+    [[ -n "$img" ]] && tmp_img="$img"
+    [[ -n "$mnt" ]] && tmp_mnt="$mnt"
+    [[ -n "$native" ]] && tmp_native="$native"
+    [[ -n "$architecture" ]] && tmp_architecture="$architecture"
+    [[ -n "$partition" ]] && tmp_partition="$partition"
+
+    # ! grep -qe "^mountdefault=" "$config_path/config.$system" unset mountdefault
+    unset mountdefault
+    grep -qe "^TERM=" "$config_path/config.$system" && unset TERM
+
+    . "$config_path/config.$system"
+    cp "$config_path/config.$system" "$config_path/config.$system.bak"
+    #mv "$config_path/config.$system" "$config_path/config.$system.bak"
+
+    [[ -n "$tmp_img" ]] && img="$tmp_img"
+    [[ -n "$tmp_mnt" ]] && mnt="$tmp_mnt"
+    [[ -n "$tmp_native" ]] && native="$tmp_native"
+    [[ -n "$tmp_architecture" ]] && architecture="$tmp_architecture"
+    [[ -n "$tmp_partition" ]] && partition="$tmp_partition"
   fi
-  if [ "$3" = "--force" ] || [ "$4" = "--force" ]; then
-    force=true
-  fi
-  if [ ! -z "$3" ] && [ "$3" != "--force" ] && [ "$3" != "--refresh" ]; then
-    img="$3"
-  fi
-  if [ "$3" == "--refresh" ] || [ "$4" == "--refresh" ]; then
-    refresh=true
-    unset kit
-    unset img
-    unset mnt
-    unset TERM
-    if [ -e "$home/linuxonandroid/config.$system" ]; then
-      . "$home/linuxonandroid/config.$system"
-    fi
-  fi
-  if [ "$3" == "--noimage" ]; then
+
+
+  [[ -z "$mnt" ]] && mnt="$ANDROID_DATA/local/$system"
+  [[ -z "$native" ]] && native="false"
+
+
+
+  if [ "$arg_noimage" == "true" ]; then
     unset img
   fi
 
-  if [ ! -e "$home/linuxonandroid/config.$system" ] || [ "$force" == "true" ] || [ "$refresh" == "true" ]; then
+  if [ ! -e "$config_path/config.$system" ] || [ "$arg_force" == "true" ] || [ "$arg_refresh" == "true" ]; then
     echo "Creating config files ..."
-    mkdir -p /data/local/linuxonandroid
-    #echo "kit=\"$kit\"" > "/data/local/linuxonandroid/config.$system"
-    echo "img=\"$img\"" >> "/data/local/linuxonandroid/config.$system"
+    mkdir -p "$config_path"
+    #echo "kit=\"$kit\"" > "$config_path/config.$system"
+    echo "img=\"$img\"" > "$config_path/config.$system"
+    echo "mnt=\"$mnt\"" >> "$config_path/config.$system"
+    echo "native=\"$native\"" >> "$config_path/config.$system"
+    echo "mountdefault=\"$mountdefault\" #sdcard,intern,android,images,images:default,images:system,images::wireshark,ram" >> "$config_path/config.$system"
+    echo "architecture=\"$architecture\" #debian,arch" >> "$config_path/config.$system"
+    echo "partition=\"$partition\"" >> "$config_path/config.$system"
 
-    if [ "$refresh" == "true" ] && [ ! -z "$mnt" ]; then
-      echo "mnt=\"$mnt\"" >> "$home/linuxonandroid/config.$system"
-    else
-      echo "mnt=\"$ANDROID_DATA/local/$system\"" >> "$home/linuxonandroid/config.$system"
-    fi
-    if [] #TODO
-    elif [ "$refresh" == "true" ] && [ ! -z "$native" ]; then
-      echo "native=\"$native\"" >> "$home/linuxonandroid/config.$system"
-    else
-      echo "#native=\"false\"" >> "$home/linuxonandroid/config.$system"
-    fi
-    if [ "$refresh" == "true" ] && [ ! -z "$architecture" ]; then
-      echo "architecture=\"$architecture\"" >> "$home/linuxonandroid/config.$system"
-    else
-      echo "#architecture=\"debian\"" >> "$home/linuxonandroid/config.$system"
-    fi
-    if [ "$refresh" == "true" ] && [ ! -z "$partition" ]; then
+
+
+    if [ "$arg_refresh" == "true" ] && [ ! -z "$partition" ]; then
       echo "partition=\"$partition\"" >> "$home/linuxonandroid/config.$system"
     else
       echo "#partition=\"\"" >> "$home/linuxonandroid/config.$system"
     fi
-    if [ "$refresh" == "true" ] && [ ! -z "$imgtype" ]; then
+    if [ "$arg_refresh" == "true" ] && [ ! -z "$imgtype" ]; then
       echo "imgtype=\"$imgtype\"" >> "$home/linuxonandroid/config.$system"
     else
       echo "#imgtype=\"ext2\"" >> "$home/linuxonandroid/config.$system"
     fi
-    if [ "$refresh" == "true" ] && [ ! -z "$imgoptions" ]; then
+    if [ "$arg_refresh" == "true" ] && [ ! -z "$imgoptions" ]; then
       echo "imgoptions=\"$imgoptions\"" >> "$home/linuxonandroid/config.$system"
     else
       echo "#imgoptions=\"\"" >> "$home/linuxonandroid/config.$system"
     fi
-    if [ "$refresh" == "true" ] && [ ! -z "$ramdisk" ]; then
+    if [ "$arg_refresh" == "true" ] && [ ! -z "$ramdisk" ]; then
       echo "ramdisk=\"$ramdisk\"" >> "$home/linuxonandroid/config.$system"
     else
-      echo "#ramdisk=\"/mnt/ramdisk\"" >> "/data/local/linuxonandroid/config.$system"
+      echo "#ramdisk=\"/mnt/ramdisk\"" >> "$home/linuxonandroid/config.$system"
     fi
-    if [ "$refresh" == "true" ] && [ ! -z "$sshport" ]; then
+    if [ "$arg_refresh" == "true" ] && [ ! -z "$sshport" ]; then
       echo "sshport=\"$sshport\"" >> "$home/linuxonandroid/config.$system"
     else
-      echo "#sshport=\"22\"" >> "/data/local/linuxonandroid/config.$system"
+      echo "#sshport=\"22\"" >> "$home/linuxonandroid/config.$system"
     fi
-    if [ "$refresh" == "true" ] && [ ! -z "$autorun" ]; then
+    if [ "$arg_refresh" == "true" ] && [ ! -z "$autorun" ]; then
       echo "autorun=\"$autorun\"" >> "/data/local/linuxonandroid/config.$system"
     else
       echo "#autorun=\"run this on\"" >> "/data/local/linuxonandroid/config.$system"
     fi
-    if [ "$refresh" == "true" ] && [ ! -z "$mountdefault" ]; then
-      echo "mountdefault=\"$mountdefault\"" >> "/data/local/linuxonandroid/config.$system"
-    else
-      echo "mountdefault=\"sdcard\" #,intern,android,images,images:default,images:system,images::wireshark,ram" >> "/data/local/linuxonandroid/config.$system"
-    fi
-    if [ "$refresh" == "true" ] && [ ! -z "$wlan_if" ]; then
+    if [ "$arg_refresh" == "true" ] && [ ! -z "$wlan_if" ]; then
       echo "wlan_if=\"$wlan_if\"" >> "/data/local/linuxonandroid/config.$system"
     else
       echo "#wlan_if=\"wlan0\"" >> "/data/local/linuxonandroid/config.$system"
     fi
-    if [ "$refresh" == "true" ] && [ ! -z "$mobile_if" ]; then
+    if [ "$arg_refresh" == "true" ] && [ ! -z "$mobile_if" ]; then
       echo "mobile_if=\"$mobile_if\"" >> "/data/local/linuxonandroid/config.$system"
     else
       echo "#mobile_if=\"rmnet0\"" >> "/data/local/linuxonandroid/config.$system"
     fi
-    if [ "$refresh" == "true" ] && [ ! -z "$shell" ]; then
+    if [ "$arg_refresh" == "true" ] && [ ! -z "$shell" ]; then
       echo "shell=\"$shell\"" >> "/data/local/linuxonandroid/config.$system"
     else
       echo "#shell=\"/bin/bash\"" >> "/data/local/linuxonandroid/config.$system"
     fi
 
-    echo "export TERM=\"$TERM\"" >> "/data/local/linuxonandroid/config.$system"
+    echo "export TERM=\"$TERM\"" >> "$home/linuxonandroid/config.$system"
     #echo "loopno=\"254\"" >> "/data/local/linuxonandroid/config.$system"
   fi
 
 ;;
 passwd)
   "$0" mount
+  cd "$mnt"
   chroot "$mnt" /usr/bin/passwd $2
 
 ;;
@@ -783,6 +825,7 @@ space)
 ;;
 network)
   #"$0" mount
+  #cd "$mnt"
   #chroot "$mnt" /root/scripts/network.sh "$wlan_if" $@
 
 ;;

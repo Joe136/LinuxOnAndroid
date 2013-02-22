@@ -20,8 +20,14 @@ alias apt-source='apt-cache source'
 alias apt-update='apt-get update'
 alias apt-upgrade='apt-get upgrade'
 
+# extra aliases for APT
+alias apt-list='dpkg -l'
+
 # aliases for coloring
 alias lsc='ls --color=always'
 alias llc='ll --color=always'
 alias lessc='less -R'
 alias grepc='grep --color=always'
+
+# general aliases
+alias free="free; echo \"\"; cat /proc/swaps"

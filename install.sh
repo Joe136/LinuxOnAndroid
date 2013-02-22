@@ -5,6 +5,13 @@
 # Some formating Rules:
 # http://wiki.bash-hackers.org/doku.php
 
+# More Projects
+# http://sourceforge.net/p/linuxonandroid/wiki/Home/
+# http://forum.xda-developers.com/showthread.php?t=1522604
+# http://www.pro-linux.de/news/1/17928/pulseaudio-auf-android-portiert.html
+# http://sven-ola.dyndns.org/repo/debian-kit-en.html
+
+
 ##---------------------------Initialize---------------------------------------##
 system="$(readlink -f $0 | tr '/' '\n' | tail -n 2 | head -n 1)"
 home="$ANDROID_DATA/local"
@@ -116,7 +123,7 @@ for (( i=$((-1)); $((i >= -BASH_ARGC)); i=$((i - 1)) )); do
     ;;
     ##-------------------------Install Path of linux Script-----------##
     --update)
-      arg_refresh="--refresh"
+      arg_update="--refresh"
     ;;
     ##-------------------------Unknown Argument-----------------------##
     *)
@@ -264,17 +271,17 @@ fi
 # Install $system config
 if [ "$arg_init" == "true" ]; then
   if [ -z "$img" ]; then
-    "$bin/$system" install "$system" --noimage "$arg_native" "$arg_refresh" #--force
+    "$bin/$system" install --system "$system" --noimage "$arg_native" "$arg_update" #--force
   else
-    "$bin/$system" install "$system" "$img" "$arg_native" "$arg_refresh" #--force
+    "$bin/$system" install --system "$system" --img "$img" "$arg_native" "$arg_update" #--force
   fi
   exit 0
 elif [ -z "$img" ]; then
   echo "Cannot find the image file. The system will only initialized."
-  "$bin/$system" install "$system" --noimage "$arg_native" "$arg_refresh" #--force
+  "$bin/$system" install --system "$system" --noimage "$arg_native" "$arg_update" #--force
   exit 6
 else
-  "$bin/$system" install "$system" "$arg_native" "$arg_refresh"
+  "$bin/$system" install --system "$system" --img "$img" "$arg_native" "$arg_update"
 fi
 
 echo "Mounting the Linux image ..."
