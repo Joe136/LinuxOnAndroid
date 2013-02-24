@@ -1,0 +1,33 @@
+LinuxOnAndroid
+==============
+
+Install
+=======
+
+There are multiple ways to install the scripts
+
+Simplest way:                                                                   
+Create a folder on the sdcard and move your linux image into this folder.
+
+Example:
+$EXTERNAL_STORAGE/linux/linux.img   # This is the image
+sh $ESTERNAL_STORAGE/linux/install.sh   # Install the scripts & mount the image
+linux   # Start Linux
+
+
+More Complex:
+Same like in simple but folder name and image name could be different.
+
+$EXTERNAL_STORAGE/imagepath/image.img   # This is the image
+sh $ESTERNAL_STORAGE/imagepath/install.sh image   # Install the scripts & mount the image
+image   # Start Linux
+
+
+With config file (most flexible):
+$EXTERNAL_STORAGE/imagepath/image.img   # This is the image
+sh $ESTERNAL_STORAGE/imagepath/install.sh linux   # Install the scripts, currently it will break
+nano $ANDROID_DATA/local/linuxonandroid/config.linux   # Modificate the config file
+    img="$sdcard/imagepath/linux.img"
+sh $ESTERNAL_STORAGE/imagepath/install.sh image   # Reinstall the scripts & mount the image, now it will work
+linux   # Start Linux
+
