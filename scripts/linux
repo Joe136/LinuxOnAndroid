@@ -18,6 +18,7 @@ export HOME="/root"
 
 if [ -z "$SECONDARY_STORAGE" ]; then
   sdcard="$EXTERNAL_STORAGE"
+  #sdcard="$(df -P "/dev/block/mmcblk0p1" | awk '{ print $6 }' | tail -n 1 )"
 else
   intern="$EXTERNAL_STORAGE"
   sdcard="$SECONDARY_STORAGE"
@@ -237,11 +238,11 @@ for (( i=$((-1)); $((i >= -BASH_ARGC)); i=$((i - 1)) )); do
     ##-------------------------Port for VNC---------------------------##
     --vnc-port=)
       vncport="$(echo "$curr_arg" | awk -F "=" '{print $2}')"
-      if ! echo "$sshport" | grep -qE -e '^[0-6]?[0-9]?[0-9]?[0-9]?[0-9]'; then # FIXME this is not correct
+      if ! echo "$vncport" | grep -qE -e '^[0-6]?[0-9]?[0-9]?[0-9]?[0-9]'; then # FIXME this is not correct
         echo "ERROR: Wrong port."
         exit 2
       fi
-      if [ "$((sshport > 0 && sshport <= 65535))" == "1" ]; then
+      if [ "$((vncport > 0 && vncport <= 65535))" == "1" ]; then
         echo "ERROR: Wrong port."
         exit 2
       fi
@@ -688,13 +689,31 @@ vnc)
   #"$0" mount # FIXME set the arguments
 
   cd "$mnt"
-  chroot "$mnt" /root/scripts/vnc.sh "$sshport" $arg_rest2
-  #eval chroot "$mnt" /root/scripts/vnc.sh "$sshport" $arg_rest2
+  chroot "$mnt" /root/scripts/vnc.sh "$vncport" $arg_rest2
+  #eval chroot "$mnt" /root/scripts/vnc.sh "$vncport" $arg_rest2
+
+;;
+apache)
+  if [ -z "$tmp_apache" ]; then
+    tmp_apache="true"
+    command[${#command[@]}]="mount"
+    command[${#command[@]}]="apache"
+    continue
+  fi
+  #"$0" mount # FIXME set the arguments
+
+  cd "$mnt"
+  chroot "$mnt" /root/scripts/apache.sh $arg_rest2
+  #eval chroot "$mnt" /root/scripts/apache.sh $arg_rest2
 
 ;;
 install)
   [[ -z "$mountdefault" ]] && mountdefault="sdcard"
-  [[ -z "$mountdefault" ]] && mountdefault="sdcard"
+  #[[ -z "$imgtype" ]] && imgtype="ext2"
+  [[ -z "$ramdisk" ]] && ramdisk="/mnt/ramdisk"
+  [[ -z "$wlan_if" ]] && wlan_if="wlan0"
+  [[ -z "$mobile_if" ]] && mobile_if="rmnet0"
+  [[ -z "$shell" ]] && shell="/bin/bash"
 
   if [ "$arg_refresh" == "true" ] && [ -e "$config_path/config.$system" ]; then
     [[ -n "$img" ]] && tmp_img="$img"
@@ -702,9 +721,15 @@ install)
     [[ -n "$native" ]] && tmp_native="$native"
     [[ -n "$architecture" ]] && tmp_architecture="$architecture"
     [[ -n "$partition" ]] && tmp_partition="$partition"
+    [[ "$arg_imgtype" == "true" ]] && tmp_imgtype="$imgtype"
+    [[ -n "$imgoptions" ]] && tmp_imgoptions="$imgoptions"
+    #[[ "$arg_ramdisk" == "true" ]] && tmp_ramdisk="$ramdisk"
+    [[ -n "$sshport" ]] && tmp_sshport="$sshport"
+    [[ -n "$vncport" ]] && tmp_vncport="$vncport"
 
     # ! grep -qe "^mountdefault=" "$config_path/config.$system" unset mountdefault
     unset mountdefault
+    #unset imgtype
     grep -qe "^TERM=" "$config_path/config.$system" && unset TERM
 
     . "$config_path/config.$system"
@@ -716,12 +741,18 @@ install)
     [[ -n "$tmp_native" ]] && native="$tmp_native"
     [[ -n "$tmp_architecture" ]] && architecture="$tmp_architecture"
     [[ -n "$tmp_partition" ]] && partition="$tmp_partition"
+    [[ -n "$tmp_imgtype" ]] && imgtype="$tmp_imgtype"
+    [[ -n "$tmp_imgoptions" ]] && imgoptions="$tmp_imgoptions"
+    #[[ -n "$tmp_ramdisk" ]] && ramdisk="$tmp_ramdisk"
+    [[ -n "$tmp_sshport" ]] && sshport="$tmp_sshport"
+    [[ -n "$tmp_vncport" ]] && vncport="$tmp_vncport"
   fi
 
 
-  [[ -z "$mnt" ]] && mnt="$ANDROID_DATA/local/$system"
+  [[ -z "$mnt" ]] && mnt="$home/$system"
   [[ -z "$native" ]] && native="false"
-
+  [[ -z "$sshport" ]] && sshport="22"
+  #[[ -z "$vncport" ]] && vncport="5901"
 
 
   if [ "$arg_noimage" == "true" ]; then
@@ -738,81 +769,51 @@ install)
     echo "mountdefault=\"$mountdefault\" #sdcard,intern,android,images,images:default,images:system,images::wireshark,ram" >> "$config_path/config.$system"
     echo "architecture=\"$architecture\" #debian,arch" >> "$config_path/config.$system"
     echo "partition=\"$partition\"" >> "$config_path/config.$system"
-
-
-
-    if [ "$arg_refresh" == "true" ] && [ ! -z "$partition" ]; then
-      echo "partition=\"$partition\"" >> "$home/linuxonandroid/config.$system"
-    else
-      echo "#partition=\"\"" >> "$home/linuxonandroid/config.$system"
-    fi
-    if [ "$arg_refresh" == "true" ] && [ ! -z "$imgtype" ]; then
-      echo "imgtype=\"$imgtype\"" >> "$home/linuxonandroid/config.$system"
-    else
-      echo "#imgtype=\"ext2\"" >> "$home/linuxonandroid/config.$system"
-    fi
-    if [ "$arg_refresh" == "true" ] && [ ! -z "$imgoptions" ]; then
-      echo "imgoptions=\"$imgoptions\"" >> "$home/linuxonandroid/config.$system"
-    else
-      echo "#imgoptions=\"\"" >> "$home/linuxonandroid/config.$system"
-    fi
-    if [ "$arg_refresh" == "true" ] && [ ! -z "$ramdisk" ]; then
-      echo "ramdisk=\"$ramdisk\"" >> "$home/linuxonandroid/config.$system"
-    else
-      echo "#ramdisk=\"/mnt/ramdisk\"" >> "$home/linuxonandroid/config.$system"
-    fi
-    if [ "$arg_refresh" == "true" ] && [ ! -z "$sshport" ]; then
-      echo "sshport=\"$sshport\"" >> "$home/linuxonandroid/config.$system"
-    else
-      echo "#sshport=\"22\"" >> "$home/linuxonandroid/config.$system"
-    fi
-    if [ "$arg_refresh" == "true" ] && [ ! -z "$autorun" ]; then
-      echo "autorun=\"$autorun\"" >> "/data/local/linuxonandroid/config.$system"
-    else
-      echo "#autorun=\"run this on\"" >> "/data/local/linuxonandroid/config.$system"
-    fi
-    if [ "$arg_refresh" == "true" ] && [ ! -z "$wlan_if" ]; then
-      echo "wlan_if=\"$wlan_if\"" >> "/data/local/linuxonandroid/config.$system"
-    else
-      echo "#wlan_if=\"wlan0\"" >> "/data/local/linuxonandroid/config.$system"
-    fi
-    if [ "$arg_refresh" == "true" ] && [ ! -z "$mobile_if" ]; then
-      echo "mobile_if=\"$mobile_if\"" >> "/data/local/linuxonandroid/config.$system"
-    else
-      echo "#mobile_if=\"rmnet0\"" >> "/data/local/linuxonandroid/config.$system"
-    fi
-    if [ "$arg_refresh" == "true" ] && [ ! -z "$shell" ]; then
-      echo "shell=\"$shell\"" >> "/data/local/linuxonandroid/config.$system"
-    else
-      echo "#shell=\"/bin/bash\"" >> "/data/local/linuxonandroid/config.$system"
-    fi
-
-    echo "export TERM=\"$TERM\"" >> "$home/linuxonandroid/config.$system"
-    #echo "loopno=\"254\"" >> "/data/local/linuxonandroid/config.$system"
+    echo "imgtype=\"$imgtype\"" >> "$config_path/config.$system"
+    echo "imgoptions=\"$imgoptions\"" >> "$config_path/config.$system"
+    echo "shell=\"$shell\"" >> "$config_path/config.$system"
+    echo "ramdisk=\"$ramdisk\"" >> "$config_path/config.$system"
+    echo "sshport=\"$sshport\"" >> "$config_path/config.$system"
+    echo "vncport=\"$vncport\"" >> "$config_path/config.$system"
+    echo "autorun=\"$autorun\"" >> "$config_path/config.$system"
+    echo "wlan_if=\"$wlan_if\"" >> "$config_path/config.$system"
+    echo "mobile_if=\"$mobile_if\"" >> "$config_path/config.$system"
+    echo "export TERM=\"$TERM\"" >> "$config_path/config.$system"
+    #echo "loopno=\"254\"" >> "$config_path/config.$system"
   fi
 
 ;;
 passwd)
-  "$0" mount
+  if [ -z "$tmp_passwd" ]; then
+    tmp_passwd="true"
+    command[${#command[@]}]="mount"
+    command[${#command[@]}]="passwd"
+    continue
+  fi
+  #"$0" mount # FIXME set the arguments
+
   cd "$mnt"
-  chroot "$mnt" /usr/bin/passwd $2
+  chroot "$mnt" /usr/bin/passwd $arg_rest2   #FIXME Check if this is an user
 
 ;;
 status)
-  echo "Memory (RAM):"
-  free
-  echo ""
-  echo "Swap:"
-  cat /proc/swaps
+  echo "currently not implemented"
+  #echo "Memory (RAM):"
+  #free
+  #echo ""
+  #echo "Swap:"
+  #cat /proc/swaps
 
 ;;
 statistic)
   # my wishlist to install + is currently installed
-  echo "Memory (RAM):"
-  free
-  echo ""
-  echo "Swap:"
-  cat /proc/swaps
+  # htop, tmux, ssh, vnc, chroot, truecrypt
+  echo "currently not implemented"
+  #echo "Memory (RAM):"
+  #free
+  #echo ""
+  #echo "Swap:"
+  #cat /proc/swaps
 
 ;;
 space)
@@ -824,7 +825,14 @@ space)
 
 ;;
 network)
-  #"$0" mount
+  #if [ -z "$tmp_network" ]; then
+  #  tmp_network="true"
+  #  command[${#command[@]}]="mount"
+  #  command[${#command[@]}]="network"
+  #  continue
+  #fi
+  #"$0" mount # FIXME set the arguments
+
   #cd "$mnt"
   #chroot "$mnt" /root/scripts/network.sh "$wlan_if" $@
 

@@ -18,6 +18,7 @@ home="$ANDROID_DATA/local"
 
 if [ -z "$SECONDARY_STORAGE" ]; then
   sdcard="$EXTERNAL_STORAGE"
+  #sdcard="$(df -P "/dev/block/mmcblk0p1" | awk '{ print $6 }' | tail -n 1 )"
 else
   intern="$EXTERNAL_STORAGE"
   sdcard="$SECONDARY_STORAGE"

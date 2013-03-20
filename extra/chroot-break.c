@@ -118,6 +118,7 @@ int main() {
 ** We're finally out - so exec a shell in interactive mode
 */
   //setenv("PS1", "$(precmd)$USER@$HOSTNAME:${PWD:-?} ", 1);
+
   setenv("TERM", "linux", 1);
   setenv("PATH", "/sbin:/vendor/bin:/system/sbin:/system/bin:/system/xbin", 1);
   setenv("ANDROID_BOOTLOGO", "1", 1);
@@ -137,7 +138,7 @@ int main() {
   setenv("ANDROID_ASSETS", "/system/app", 1);
   setenv("ANDROID_SOCKET_zygote", "9", 1);
 
-  if (execl("/system/bin/sh","-i",NULL)<0) {
+  if (execl("/system/bin/sh","-l -i",NULL)<0) {
     fprintf(stderr,"Failed to exec - %s\n",strerror(errno));
     exit(1);
   }
