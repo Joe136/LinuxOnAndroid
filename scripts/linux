@@ -797,7 +797,13 @@ passwd)
 
 ;;
 status)
-  echo "currently not implemented"
+  #echo "currently not implemented"
+  echo -n "Current CPU Frequency: "
+  cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq
+  echo -n "Minimum CPU Frequency: "
+  cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq
+  echo -n "Maximum CPU Frequency: "
+  cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq
   #echo "Memory (RAM):"
   #free
   #echo ""
@@ -824,7 +830,7 @@ space)
   cat /proc/swaps
 
 ;;
-network)
+network|nw)
   #if [ -z "$tmp_network" ]; then
   #  tmp_network="true"
   #  command[${#command[@]}]="mount"

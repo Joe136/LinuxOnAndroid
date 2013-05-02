@@ -2,6 +2,19 @@
 # See the file "license.terms" for information on usage and redistribution of
 # this file, and for a DISCLAIMER OF ALL WARRANTIES.
 
+
+function cpu_stats () {
+  echo -n "Current CPU Frequency: "
+  cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq
+  echo -n "Minimum CPU Frequency: "
+  cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq
+  echo -n "Maximum CPU Frequency: "
+  cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq
+}
+
+
+
+##---------------------------Main Loop-----------------------------------##
 case "$1" in
 start)
   echo "start" | nc localhost 4242
@@ -24,6 +37,7 @@ dumpsys)
 ;;
 boost)
   echo "boost" | nc localhost 4242
+
 ;;
 shell)
   echo "shell" | nc localhost 4242
@@ -35,4 +49,19 @@ shell)
   fi
 
 ;;
+stats|info)
+  ifconfig wlan0 | head -n 3 && ifconfig wlan0 | tail -n 2 | head -n 1
+  echo ""
+  iwconfig wlan0 | head -n 3 && iwconfig wlan0 | tail -n 5 | head -n 2
+  echo ""
+  ifconfig rmnet0 | head -n 3 && ifconfig rmnet0 | tail -n 2 | head -n 1
+  echo ""
+  cpu_stats
+
+;;
+cpu)
+  cpu_stats
+
+;;
+
 esac

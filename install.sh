@@ -44,7 +44,11 @@ while true; do   # Worse workaround for goto
 while true; do   # Really worse workaround for goto
 ##---------------------------Check Arguments--------------------------##
 #for (( i=$((BASH_ARGC - 1)); $((i >= 0)); i=$((i - 1)) )); do
-for (( i=$((-1)); $((i >= -BASH_ARGC)); i=$((i - 1)) )); do
+#for (( i=$((-1)); $((i >= -BASH_ARGC)); i=$((i - 1)) )); do
+for i in `seq 0 -1 -$BASH_ARGC | tail -n $BASH_ARGC`; do
+  echo $i
+  exit
+  done
   curr_arg="${BASH_ARGV[$i]}"
   if [ -z "$curr_arg" ]; then
     :

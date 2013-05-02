@@ -19,12 +19,12 @@ cp -f "bash.bashrc_aliases" "$mnt/etc/bash.bashrc_aliases"
 chmod 644 "$mnt/etc/bash.bashrc_aliases"
 chown root:root "$mnt/etc/bash.bashrc_aliases"
 
-cp -f "bash.bashrc" "$mnt/root/.bashrc"
-cp -f "bash.bash_aliases" "$mnt/root/.bash_aliases"
-chmod 640 "$mnt/root/.bashrc"
-chmod 640 "$mnt/root/.bash_aliases"
-chown root:root "$mnt/root/.bashrc"
-chown root:root "$mnt/root/.bash_aliases"
+#cp -f "bash.bashrc" "$mnt/root/.bashrc"
+#cp -f "bash.bash_aliases" "$mnt/root/.bash_aliases"
+#chmod 640 "$mnt/root/.bashrc"
+#chmod 640 "$mnt/root/.bash_aliases"
+#chown root:root "$mnt/root/.bashrc"
+#chown root:root "$mnt/root/.bash_aliases"
 
 echo -n "$system" > "$mnt/etc/debian_chroot"
 

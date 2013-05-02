@@ -1,4 +1,5 @@
-# ~/.bashrc: executed by bash(1) for non-login shells.
+# System-wide .bashrc file for interactive bash(1) shells.
+
 # see /usr/share/doc/bash/examples/startup-files (in the package bash-doc)
 # for examples
 
@@ -21,87 +22,109 @@ HISTFILESIZE=2000
 shopt -s checkwinsize
 
 # make less more friendly for non-text input files, see lesspipe(1)
-[ -x /usr/bin/lesspipe ] && eval "$(SHELL=/bin/sh lesspipe)"
+[ -x "/usr/bin/lesspipe" ] && eval "$(SHELL=/bin/sh lesspipe)"
 
-# set variable identifying the chroot you work in (used in the prompt below)
-if [ -z "$debian_chroot" ] && [ -r /etc/debian_chroot ]; then
-    debian_chroot=$(cat /etc/debian_chroot)
-fi
 
-# set a fancy prompt (non-color, unless we know we "want" color)
-case "$TERM" in
-    xterm-color|linux) color_prompt=yes;;
-esac
-
-# uncomment for a colored prompt, if the terminal has the capability; turned
-# off by default to not distract the user: the focus in a terminal window
-# should be on the output of commands, not on the prompt
-#force_color_prompt=yes
-
-if [ -n "$force_color_prompt" ]; then
-    if [ -x /usr/bin/tput ] && tput setaf 1 >&/dev/null; then
-	# We have color support; assume it's compliant with Ecma-48
-	# (ISO/IEC-6429). (Lack of such support is extremely rare, and such
-	# a case would tend to support setf rather than setaf.)
-	color_prompt=yes
-    else
-	color_prompt=
+function reset_ps1 {
+    # set variable identifying the chroot you work in (used in the prompt below)
+    if [ -z "$debian_chroot" ] && [ -r "/etc/debian_chroot" ]; then
+        debian_chroot=$(cat /etc/debian_chroot)
     fi
-fi
 
-ssh_extern="$(echo $SSH_CONNECTION | awk '{ print $3 }')"
-if [ -z "$ssh_extern" ]; then ssh_extern='\h'; fi
+    # Part of Linux Mint Debian
+    use_color=false
 
-if [ "$color_prompt" = yes ]; then
-    PS1="${debian_chroot:+\[\033[01;33m\]($debian_chroot)}"'\[\033[01;32m\]\u@'"$ssh_extern"'\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ '
-else
-    PS1="${debian_chroot:+($debian_chroot)}"'\u@'"$ssh_extern"':\w\$ '
-fi
-unset color_prompt force_color_prompt
+    # Set colorful PS1 only on colorful terminals.
+    # dircolors --print-database uses its own built-in database
+    # instead of using /etc/DIR_COLORS.  Try to use the external file
+    # first to take advantage of user additions.  Use internal bash
+    # globbing instead of external grep binary.
+    safe_term=${TERM//[^[:alnum:]]/?}   # sanitize TERM
+    match_lhs=""
+    [[ -f ~/.dir_colors   ]] && match_lhs="${match_lhs}$(<~/.dir_colors)"
+    [[ -f /etc/DIR_COLORS ]] && match_lhs="${match_lhs}$(</etc/DIR_COLORS)"
+    [[ -z ${match_lhs}    ]] \
+            && type -P dircolors >/dev/null \
+            && match_lhs=$(dircolors --print-database)
+    [[ $'\n'${match_lhs} == *$'\n'"TERM "${safe_term}* ]] && use_color=true
 
-# enable color support of ls and also add handy aliases
-if [ -x /usr/bin/dircolors ]; then
-    test -r ~/.dircolors && eval "$(dircolors -b ~/.dircolors)" || eval "$(dircolors -b)"
-    alias ls='ls -A --color=auto'
-    alias dir='dir --color=auto'
-    alias vdir='vdir --color=auto'
+    ssh_extern="$(echo $SSH_CONNECTION | awk '{ print $3 }')"
+    [[ -z "$ssh_extern" ]] && ssh_extern='\h'
 
-    alias grep='grep --color=auto'
-    alias fgrep='fgrep --color=auto'
-    alias egrep='egrep --color=auto'
-else
-    alias ls='ls -A'
-fi
+    if ${use_color} ; then
+            # Enable colors for ls, etc.  Prefer ~/.dir_colors #64489
+            if type -P dircolors >/dev/null ; then
+                    if [[ -f ~/.dir_colors ]] ; then
+                            eval $(dircolors -b ~/.dir_colors)
+                    elif [[ -f /etc/DIR_COLORS ]] ; then
+                            eval $(dircolors -b /etc/DIR_COLORS)
+                    fi
+            fi
 
-# some more ls aliases
-alias ll='ls -alF'
-alias la='ls -A'
-alias l='ls -CF'
-alias du='du -hs'
-alias apt-install="apt-get install"
-alias apt-search="apt-cache search"
-alias apt-update="apt-get update"
-alias apt-upgrade="apt-get upgrade"
-alias newscreen="screen -dmS linux -T xterm-color -s /usr/bin/tmux"
+            if [[ ${EUID} == 0 ]] ; then
+                    PS1="${debian_chroot:+\[\033[01;33m\]($debian_chroot)}"'\[\033[01;31m\]\u\[\033[01;32m\]@'"$ssh_extern"'\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ '
+            #        PS1='${debian_chroot:+($debian_chroot)}\[\033[01;31m\]\h\[\033[01;34m\] \W \$\[\033[00m\] '
+            else
+                    PS1="${debian_chroot:+\[\033[01;33m\]($debian_chroot)}"'\[\033[01;32m\]\u@'"$ssh_extern"'\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ '
+            #        PS1='${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[01;34m\] \w \$\[\033[00m\] '
+            fi
+
+            #alias ls='ls --color=auto'
+            #alias grep='grep --colour=auto'
+    else
+            PS1="${debian_chroot:+($debian_chroot)}"'\u@'"$ssh_extern"':\w\$ '
+
+            #if [[ ${EUID} == 0 ]] ; then
+            #        # show root@ when we don't have colors
+            #        PS1='\u@\h \W \$ '
+            #else
+            #        PS1='\u@\h \w \$ '
+            #fi
+    fi
+
+    # Try to keep environment pollution down, EPA loves us.
+    unset use_color safe_term match_lhs ssh_extern
+}
+
+reset_ps1
+
 
 # Alias definitions.
 # You may want to put all your additions into a separate file like
-# ~/.bash_aliases, instead of adding them here directly.
+# /etc/bash.bash_aliases, instead of adding them here directly.
 # See /usr/share/doc/bash-doc/examples in the bash-doc package.
-if [ -f ~/.bash_aliases ]; then
-    . ~/.bash_aliases
+if [ -f "/etc/bash.bash_aliases" ]; then
+    . /etc/bash.bash_aliases
 fi
 
 # enable programmable completion features (you don't need to enable
-# this, if it's already enabled in /etc/bash.bashrc and /etc/profile
-# sources /etc/bash.bashrc).
+# this).
 if ! shopt -oq posix; then
-    if [ -f /etc/bash_completion ]; then
+    if [ -f "/usr/share/bash-completion/bash_completion" ]; then
+        . /usr/share/bash-completion/bash_completion
+    elif [ -f "/etc/bash_completion" ]; then
         . /etc/bash_completion
     fi
 
-    if [ -f ~/.bash_completion ]; then
-        . ~/.bash_completition
-    fi
+    #if [ -f ~/.bash_completion ]; then
+    #    . ~/.bash_completition
+    #fi
+fi
+
+# if the command-not-found package is installed, use it
+if [ -x "/usr/lib/command-not-found" -o -x "/usr/share/command-not-found/command-not-found" ]; then
+    function command_not_found_handle {
+        # check because c-n-f could've been removed in the meantime
+        if [ -x "/usr/lib/command-not-found" ]; then
+            /usr/bin/python /usr/lib/command-not-found -- "$1"
+            return $?
+        elif [ -x "/usr/share/command-not-found/command-not-found" ]; then
+            /usr/bin/python /usr/share/command-not-found/command-not-found -- "$1"
+            return $?
+        else
+            printf "%s: command not found\n" "$1" >&2
+            return 127
+        fi
+    }
 fi
 
