@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android" >
+    <CheckBoxPreference android:title="Test" android:summaryOn="Test1" android:summaryOff="Test2"/>
+    
+
+</PreferenceScreen>

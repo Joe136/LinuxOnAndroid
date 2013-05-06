@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">Linux Executor</string>
+    <string name="title_distribution_detail">Distribution Detail</string>
+    <string name="string_options">Options</string>
+    <string name="string_about">About</string>
+    <string name="string_exit">Exit</string>
+    <string name="string_add_distro">Add Distribution</string>
+    <string name="string_edit_distro">Edit distribution</string>
+    <string name="string_edit_distro_name">Distribution Name</string>
+    <string name="string_edit_distro_config_path">Config Path</string>
+    <string name="string_edit_distro_title">Edit Distribution</string>
+    <string name="string_edit_distro_OK">Save</string>
+    <string name="string_edit_distro_cancel">Cancel</string>
+
+</resources>

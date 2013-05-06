@@ -1,4 +1,4 @@
 LinuxOnAndroid
 ==============
 
-These scripts can initialize and start a created Linux image on rooted Android.
+This is an App to execute several commands the user wants.

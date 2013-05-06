@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android" >
+    <item android:id="@+id/add_distro_menu_button" android:title="@string/string_add_distro" android:showAsAction="ifRoom"></item>
+    <item android:id="@+id/options_menu_button" android:title="@string/string_options"></item>
+    <item android:id="@+id/about_menu_button" android:title="@string/string_about"></item>
+    <item android:id="@+id/exit_menu_button" android:title="@string/string_exit"></item>
+    
+    
+
+</menu>
