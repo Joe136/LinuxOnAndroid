@@ -1,0 +1,9 @@
+# Configfile for the installation of the scripts
+# See the file "license.terms" for information on usage and redistribution of
+# this file, and for a DISCLAIMER OF ALL WARRANTIES.
+
+#ignore_bashrc = true
+#ignore_bash_aliases = true
+#ignore_debian_chroot = true
+#ignore_dns_server = true
+

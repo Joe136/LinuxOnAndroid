@@ -46,9 +46,6 @@ while true; do   # Really worse workaround for goto
 #for (( i=$((BASH_ARGC - 1)); $((i >= 0)); i=$((i - 1)) )); do
 #for (( i=$((-1)); $((i >= -BASH_ARGC)); i=$((i - 1)) )); do
 for i in `seq 0 -1 -$BASH_ARGC | tail -n $BASH_ARGC`; do
-  echo $i
-  exit
-  done
   curr_arg="${BASH_ARGV[$i]}"
   if [ -z "$curr_arg" ]; then
     :
@@ -298,12 +295,7 @@ if ! mountpoint -q "$mnt"; then
 fi
 
 echo "Customizing the image ..."
-echo "  Setting DNS Server"
-echo "nameserver 8.8.8.8" > "$mnt/etc/resolv.conf"
-echo "nameserver 8.8.4.4" >> "$mnt/etc/resolv.conf"
-#echo "  Setting localhost on /etc/hosts "
-#echo "127.0.0.1 localhost" > "$mnt/etc/hosts"
-
+# TODO Complete the next line
 if [ -e "$" ]; then
   echo "  Installing additional files ..."
   cd "$kit/rootfs"

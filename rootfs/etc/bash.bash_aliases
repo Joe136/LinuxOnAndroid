@@ -1,4 +1,9 @@
 
+# LinuxOnAndroid exclude
+# the second line is for detecting this script as part of the project
+# if you want that it wasn't changed, add the keyword 'exclude'
+
+
 # See the file "license.terms" for information on usage and redistribution of
 # this file, and for a DISCLAIMER OF ALL WARRANTIES.
 
@@ -20,6 +25,7 @@ alias apt-source='apt-cache source'
 alias apt-update='apt-get update'
 alias apt-upgrade='apt-get upgrade'
 
+
 # extra aliases for APT
 alias apt-list='dpkg -l'
 
@@ -31,7 +37,7 @@ if [ -x "/usr/bin/dircolors" ]; then
     alias ls='ls -A --color=auto'
     alias dir='dir --color=auto'
     alias vdir='vdir --color=auto'
-    
+
     alias grep='grep --color=auto'
     alias fgrep='fgrep --color=auto'
     alias egrep='egrep --color=auto'
@@ -40,6 +46,7 @@ if [ -x "/usr/bin/dircolors" ]; then
 else
     alias ls='ls -A'
 fi
+
 
 # forced color effects
 alias lsc='ls --color=always'
@@ -57,9 +64,54 @@ alias l='ls -CF'
 alias du='du -hs'
 
 
+# aliases for nano
+alias nanoc="nano -Y c"
+alias nanocss="nano -Y css"
+#alias nanodebian="nano -Y debian"
+#alias nanogentoo="nano -Y gentoo"
+alias nanohtml="nano -Y html"
+alias nanophp="nano -Y php"
+#alias nanotcl="nano -Y tcl"
+alias nanotex="nano -Y tex"
+#alias nanomutt="nano -Y mutt"
+alias nanopatch="nano -Y patch"
+alias nanoman="nano -Y man"
+#alias nanogroff="nano -Y groff"
+alias nanoperl="nano -Y perl"
+alias nanopython="nano -Y python"
+alias nanoruby="nano -Y ruby"
+alias nanojava="nano -Y java"
+alias nanoawk="nano -Y awk"
+alias nanoasm="nano -Y asm"
+alias nanosh="nano -Y sh"
+#alias nanopov="nano -Y pov"
+alias nanoxml="nano -Y xml"
+
+alias nano_c="nano -Y c"
+alias nano_css="nano -Y css"
+#alias nano_debian="nano -Y debian"
+#alias nano_gentoo="nano -Y gentoo"
+alias nano_html="nano -Y html"
+alias nano_php="nano -Y php"
+#alias nano_tcl="nano -Y tcl"
+alias nano_tex="nano -Y tex"
+#alias nano_mutt="nano -Y mutt"
+alias nano_patch="nano -Y patch"
+alias nano_man="nano -Y man"
+#alias nano_groff="nano -Y groff"
+alias nano_perl="nano -Y perl"
+alias nano_python="nano -Y python"
+alias nano_ruby="nano -Y ruby"
+alias nano_java="nano -Y java"
+alias nano_awk="nano -Y awk"
+alias nano_asm="nano -Y asm"
+alias nano_sh="nano -Y sh"
+#alias nano_pov="nano -Y pov"
+alias nano_xml="nano -Y xml"
+
+
 # general aliases
 alias free="free; echo \"\"; cat /proc/swaps"
 #alias newscreen="screen -dmS linux -T xterm-color -s /usr/bin/tmux"
 alias newscreen="screen -dmS linux -s /usr/bin/tmux"
-alias nanosh="nano -Y sh"
 

@@ -675,8 +675,8 @@ ssh)
   #"$0" mount # FIXME set the arguments
 
   cd "$mnt"
-  chroot "$mnt" /root/scripts/ssh.sh "$sshport" $arg_rest2
-  #eval chroot "$mnt" /root/scripts/ssh.sh "$sshport" $arg_rest2
+  chroot "$mnt" /opt/android-scripts/ssh.sh "$sshport" $arg_rest2
+  #eval chroot "$mnt" /opt/android-scripts/ssh.sh "$sshport" $arg_rest2
 
 ;;
 vnc)
@@ -689,8 +689,8 @@ vnc)
   #"$0" mount # FIXME set the arguments
 
   cd "$mnt"
-  chroot "$mnt" /root/scripts/vnc.sh "$vncport" $arg_rest2
-  #eval chroot "$mnt" /root/scripts/vnc.sh "$vncport" $arg_rest2
+  chroot "$mnt" /opt/android-scripts/vnc.sh "$vncport" $arg_rest2
+  #eval chroot "$mnt" /opt/android-scripts/vnc.sh "$vncport" $arg_rest2
 
 ;;
 apache)
@@ -703,8 +703,8 @@ apache)
   #"$0" mount # FIXME set the arguments
 
   cd "$mnt"
-  chroot "$mnt" /root/scripts/apache.sh $arg_rest2
-  #eval chroot "$mnt" /root/scripts/apache.sh $arg_rest2
+  chroot "$mnt" /opt/android-scripts/apache.sh $arg_rest2
+  #eval chroot "$mnt" /opt/android-scripts/apache.sh $arg_rest2
 
 ;;
 install)
@@ -840,7 +840,7 @@ network|nw)
   #"$0" mount # FIXME set the arguments
 
   #cd "$mnt"
-  #chroot "$mnt" /root/scripts/network.sh "$wlan_if" $@
+  #chroot "$mnt" /opt/android-scripts/network.sh "$wlan_if" $@
 
 ;;
 hardinstall)

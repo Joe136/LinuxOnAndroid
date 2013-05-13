@@ -1,4 +1,7 @@
 # System-wide .bashrc file for interactive bash(1) shells.
+# LinuxOnAndroid
+# the second line is for detecting this script as part of the project
+# if you want that it wasn't changed, add the keyword 'exclude'
 
 # see /usr/share/doc/bash/examples/startup-files (in the package bash-doc)
 # for examples

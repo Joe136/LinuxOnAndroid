@@ -63,5 +63,8 @@ cpu)
   cpu_stats
 
 ;;
+*)
+  echo "`basename $0` start|stop|restart|dumpsys|boost|shell|status|info|cpu" 2> /dev/null
 
+;;
 esac
