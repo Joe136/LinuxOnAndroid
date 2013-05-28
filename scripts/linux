@@ -1,4 +1,4 @@
-#!/system/bin/sh
+#!/system/bin/mksh
 # See the file "license.terms" for information on usage and redistribution of
 # this file, and for a DISCLAIMER OF ALL WARRANTIES.
 
@@ -8,7 +8,7 @@ system="$(basename $0)"
 imgtype="ext2"
 shell="/bin/bash"
 ramdisk="/mnt/ramdisk"
-command[0]="$1"
+command="$1"
 
 export xbin="$ANDROID_ROOT/xbin"
 export PATH="$xbin:/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:$PATH"
@@ -49,10 +49,24 @@ done
 #img="$kit/$system.img"
 
 
+##---------------------------Prepare Argument List----------------------------##
+unset BASH_ARGV
+BASH_ARGC="$#"
+i=-1
+for curr_arg in "$@"; do
+  set +A BASH_ARGV -- [$i]="$curr_arg"
+  i=$((i - 1))
+done
+unset curr_arg
+
+
 if [ "$command" != "install" ]; then
   ##-------------------------Check Arguments--------------------------##
+  i=0
   #for (( i=$((BASH_ARGC - 1)); $((i >= 0)); i=$((i - 1)) )); do
-  for (( i=$((-1)); $((i >= -BASH_ARGC)); i=$((i - 1)) )); do
+  #for (( i=$((-1)); $((i >= -BASH_ARGC)); i=$((i - 1)) )); do
+  until test "$((i > -BASH_ARGC))" == "0"; do
+    i=$((i - 1))
     if [ "$(echo "${BASH_ARGV[$i]}" | head -c 2)" == "--" ];then
       case "$arg" in
       ##-----------------------Config Path----------------------------##
@@ -71,13 +85,13 @@ if [ "$command" != "install" ]; then
       esac
     fi
   done
-  
-  
+
+
   if [ -z "$config_path" ]; then
     config_path="$home/linuxonandroid"
   fi
-  
-  
+
+
   #Froyo's apps-to-SD makes use of special loopback devices /dev/block/dm-#
   #Each program installed to SD uses up a normal loopback device.
   #We therefore have to make our own with a minor number that we hope
@@ -96,8 +110,11 @@ fi
 
 
 ##---------------------------Check Arguments--------------------------##
+i=0
 #for (( i=$((BASH_ARGC - 1)); $((i >= 0)); i=$((i - 1)) )); do
-for (( i=$((-1)); $((i >= -BASH_ARGC)); i=$((i - 1)) )); do
+#for (( i=$((-1)); $((i >= -BASH_ARGC)); i=$((i - 1)) )); do
+until test "$((i > -BASH_ARGC))" == "0"; do
+  i=$((i - 1))
   curr_arg="${BASH_ARGV[$i]}"
   if [ -z "$curr_arg" ]; then
     :
@@ -285,27 +302,14 @@ for (( i=$((-1)); $((i >= -BASH_ARGC)); i=$((i - 1)) )); do
 done
 
 
-if [ "$command" != "install" ]; then
-  [ -z "$mnt" ] && mnt="$home/$system"
-fi
-if [ -z "$config_path" ]; then
-  config_path="$home/linuxonandroid"
-fi
 
+##---------------------------Define Functions-------------------------##
 
-while true; do
-
-tmp_len="${#command[@]}"
-tmp_len="${{tmp_len - 1}}"
-[[ "$tmp_len" == "-1" ]] && break
-
-tmp_commamd="${command[$tmp_len]}"
-unset ${command[$tmp_len]}
-
-case "$tmp_command" in
-mount)
+function function_mount()
+{
+  echo "mjdur " $img
   if [ ! -e "$config_path/config.$system" ]; then
-    "$0" install "$system"
+    "$0" install "$system" #TODO
     . "$config_path/config.$system"
   fi
 
@@ -378,7 +382,9 @@ mount)
         mount_point=$(df -P | awk '$6=="'$sdcard'" {print $1}')
         mount -t vfat -o rw,dirsync,suid,exec,relatime "$mount_point" "$mnt/mnt/sdcard"
       elif [ "$comm" == "intern" ]; then
+        :
       #elif [ "$comm" == "android" ]; then
+      #  :
       elif [ "$comm" == "images" ]; then
         "$0" mountimg $@
       fi
@@ -395,9 +401,12 @@ mount)
   fi
 
   echo "	[ Done ]"
+}
 
-;;
-umount|unmount)
+
+
+function function_umount()
+{
   "$0" umountimg $@
 
   #loop="$(mountpoint -n "$mnt" | cut -sd' ' -f1)"
@@ -445,6 +454,29 @@ umount|unmount)
     losetup -d "$l"
     rm "$l"
   done
+}
+
+
+
+if [ "$command" != "install" ]; then
+  [ -z "$mnt" ] && mnt="$home/$system"
+fi
+if [ -z "$config_path" ]; then
+  config_path="$home/linuxonandroid"
+fi
+
+
+
+
+echo "point1"
+
+case "$command" in
+mount)
+  function_mount
+
+;;
+umount|unmount)
+  function_umount
 
 ;;
 mountsd)
@@ -487,7 +519,7 @@ umountsd|unmountsd)
   mounts="$mounts\n$(cut -sd' ' -f2 /proc/mounts | grep "^$mnt/mnt/intern" | sort -r)"
 
   if [ -z "$mounts" ]; then
-    else "Nothing to unmount"
+    echo "Nothing to unmount"
   else
     for m in $mounts; do
       if losetup "$(mountpoint -n "$m" | cut -sd' ' -f1)" > /dev/null 2>&1; then
@@ -536,6 +568,7 @@ umountsd|unmountsd)
 
 ;;
 mountimg)
+  #TODO check if $mnt is mounted
   beg=250
   unset IFS
   conffiles=default'
@@ -653,26 +686,14 @@ umountram)
 
 ;;
 chroot|"")
-  if [ -z "$tmp_chroot" ]; then
-    tmp_chroot="true"
-    command[${#command[@]}]="mount"
-    command[${#command[@]}]="chroot"
-    continue
-  fi
-  #"$0" mount # FIXME set the arguments
+  function_mount
 
   cd "$mnt"
   chroot "$arg_user" "$mnt" $shell
 
 ;;
 ssh)
-  if [ -z "$tmp_ssh" ]; then
-    tmp_ssh="true"
-    command[${#command[@]}]="mount"
-    command[${#command[@]}]="ssh"
-    continue
-  fi
-  #"$0" mount # FIXME set the arguments
+  function_mount
 
   cd "$mnt"
   chroot "$mnt" /opt/android-scripts/ssh.sh "$sshport" $arg_rest2
@@ -680,13 +701,7 @@ ssh)
 
 ;;
 vnc)
-  if [ -z "$tmp_vnc" ]; then
-    tmp_vnc="true"
-    command[${#command[@]}]="mount"
-    command[${#command[@]}]="vnc"
-    continue
-  fi
-  #"$0" mount # FIXME set the arguments
+  function_mount
 
   cd "$mnt"
   chroot "$mnt" /opt/android-scripts/vnc.sh "$vncport" $arg_rest2
@@ -694,13 +709,7 @@ vnc)
 
 ;;
 apache)
-  if [ -z "$tmp_apache" ]; then
-    tmp_apache="true"
-    command[${#command[@]}]="mount"
-    command[${#command[@]}]="apache"
-    continue
-  fi
-  #"$0" mount # FIXME set the arguments
+  function_mount
 
   cd "$mnt"
   chroot "$mnt" /opt/android-scripts/apache.sh $arg_rest2
@@ -784,13 +793,7 @@ install)
 
 ;;
 passwd)
-  if [ -z "$tmp_passwd" ]; then
-    tmp_passwd="true"
-    command[${#command[@]}]="mount"
-    command[${#command[@]}]="passwd"
-    continue
-  fi
-  #"$0" mount # FIXME set the arguments
+  function_mount
 
   cd "$mnt"
   chroot "$mnt" /usr/bin/passwd $arg_rest2   #FIXME Check if this is an user
@@ -831,13 +834,7 @@ space)
 
 ;;
 network|nw)
-  #if [ -z "$tmp_network" ]; then
-  #  tmp_network="true"
-  #  command[${#command[@]}]="mount"
-  #  command[${#command[@]}]="network"
-  #  continue
-  #fi
-  #"$0" mount # FIXME set the arguments
+  #function_mount
 
   #cd "$mnt"
   #chroot "$mnt" /opt/android-scripts/network.sh "$wlan_if" $@
@@ -869,6 +866,3 @@ help)
 
 ;;
 esac
-
-break
-done

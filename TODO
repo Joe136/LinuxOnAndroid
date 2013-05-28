@@ -1,0 +1,11 @@
+IMPORTANT:
+mksh does not use BASH_ARGC and BASH_ARGV (install.sh)
+
+
+REST:
+rebuild scripts/linux to use functions (e.g. for main mount) instead of switch with loop
+speedup bashrc, it's really slow
+
+
+UNIMPORTANT:
+

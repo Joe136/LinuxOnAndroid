@@ -1,4 +1,4 @@
-
+#!/system/bin/mksh
 # See the file "license.terms" for information on usage and redistribution of
 # this file, and for a DISCLAIMER OF ALL WARRANTIES.
 
@@ -78,39 +78,42 @@ searchImage() # arg1: kit-path, arg2: given system
   local bname="$(basename $2)"
   if [ "$(($(echo $bname | awk 'BEGIN{FS="."{print NF}}') > 1))" == "1" ]; then
     if [ "$(echo $2 | awk 'BEGIN{FS="."}{print $NF}')" == "img" ]; then
+      : #TODO
     fi
   elif [ "$bname" == "$2" ]; then
-  elif []; then
+    : #TODO
+  #elif []; then
+  #  : #TODO
   fi
 
   if [ -e "$1/$2.img" ]; then echo "$1/$2.img"; return; fi
 
   local img="$(searchImageCurrentPath $sdcard $2)"
-  if [ ! -z "$img" ]; echo "$img"; return; fi
+  if [ ! -z "$img" ]; then echo "$img"; return; fi
 
   if [ ! -z "$intern" ]; then
     local img="$(searchImageCurrentPath $intern $2)"
-    if [ ! -z "$img" ]; echo "$img"; return; fi
+    if [ ! -z "$img" ]; then echo "$img"; return; fi
   fi
 
   if [ -d "$sdcard/linux" ]; then
     local img="$(searchImageCurrentPath $sdcard/linux $2)"
-    if [ ! -z "$img" ]; echo "$img"; return; fi
+    if [ ! -z "$img" ]; then echo "$img"; return; fi
   fi
 
   if [ -d "$intern/linux" ]; then
     local img="$(searchImageCurrentPath $intern/linux $2)"
-    if [ ! -z "$img" ]; echo "$img"; return; fi
+    if [ ! -z "$img" ]; then echo "$img"; return; fi
   fi
 
   if [ -d "$sdcard/linuxonandroid" ]; then
     local img="$(searchImageCurrentPath $sdcard/linuxonandroid $1)"
-    if [ ! -z "$img" ]; echo "$img"; return; fi
+    if [ ! -z "$img" ]; then echo "$img"; return; fi
   fi
 
   if [ -d "$intern/linuxonandroid" ]; then
     local img="$(searchImageCurrentPath $intern/linuxonandroid $1)"
-    if [ ! -z "$img" ]; echo "$img"; return; fi
+    if [ ! -z "$img" ]; then echo "$img"; return; fi
   fi
 
 

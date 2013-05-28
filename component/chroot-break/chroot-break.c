@@ -137,6 +137,7 @@ int main() {
   setenv("SHEL", "/system/bin/sh", 1);
   setenv("ANDROID_ASSETS", "/system/app", 1);
   setenv("ANDROID_SOCKET_zygote", "9", 1);
+  setenv("TMUX");
 
   if (execl("/system/bin/sh","-l -i",NULL)<0) {
     fprintf(stderr,"Failed to exec - %s\n",strerror(errno));

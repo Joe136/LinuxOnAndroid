@@ -2,7 +2,8 @@
 # See the file "license.terms" for information on usage and redistribution of
 # this file, and for a DISCLAIMER OF ALL WARRANTIES.
 
-#  TODO Install anything here
+mkdir -p "$mnt/etc/loa"
+
 
 echo "      Installing user-configs ..."
 # bashrc

@@ -1,4 +1,4 @@
-#!/system/bin/sh
+#!/system/bin/mksh
 # See the file "license.terms" for information on usage and redistribution of
 # this file, and for a DISCLAIMER OF ALL WARRANTIES.
 
@@ -39,13 +39,26 @@ currentscriptpath()
 }
 
 
+##---------------------------Prepare Argument List----------------------------##
+unset BASH_ARGV
+BASH_ARGC="$#"
+i=-1
+for curr_arg in "$@"; do
+  set +A BASH_ARGV -- [$i]="$curr_arg"
+  i=$((i - 1))
+done
+unset curr_arg
+
 
 while true; do   # Worse workaround for goto
 while true; do   # Really worse workaround for goto
 ##---------------------------Check Arguments--------------------------##
+i=0
 #for (( i=$((BASH_ARGC - 1)); $((i >= 0)); i=$((i - 1)) )); do
 #for (( i=$((-1)); $((i >= -BASH_ARGC)); i=$((i - 1)) )); do
-for i in `seq 0 -1 -$BASH_ARGC | tail -n $BASH_ARGC`; do
+#for i in `seq 0 -1 -$BASH_ARGC | tail -n $BASH_ARGC`; do
+until test "$((i > -BASH_ARGC))" == "0"; do
+  i=$((i - 1))
   curr_arg="${BASH_ARGV[$i]}"
   if [ -z "$curr_arg" ]; then
     :
@@ -136,7 +149,7 @@ for i in `seq 0 -1 -$BASH_ARGC | tail -n $BASH_ARGC`; do
     esac
   elif [ "$(echo -"$curr_arg" | head -c 2)" == "--" ];then
     args="$(echo -"$curr_arg" | awk 'BEGIN{FS=""}{ for (i = 3; i <= NF; ++i) print $i; }')"
-  
+
     for arg in `echo -e "$args"`; do
       case "$arg" in
     ##-------------------------System Name----------------------------##

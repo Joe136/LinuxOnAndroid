@@ -4,6 +4,10 @@
 
 
 function cpu_stats () {
+  echo -n "Current Governor: "
+  cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
+  echo -n "Current I/O Scheduler: "
+  cat /sys/block/mmcblk0/queue/scheduler | grep -Eoe "\[[a-zA-Z0-9]*\]" | grep -Eoe "[a-zA-Z0-9]*"
   echo -n "Current CPU Frequency: "
   cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq
   echo -n "Minimum CPU Frequency: "

@@ -27,7 +27,8 @@ alias apt-upgrade='apt-get upgrade'
 
 
 # extra aliases for APT
-alias apt-list='dpkg -l'
+#alias apt-list='dpkg -l'
+alias apt-list='dpkg -l | grep'
 
 
 # aliases for coloring
@@ -62,6 +63,8 @@ alias ll='ls -alF'
 alias la='ls -A'
 alias l='ls -CF'
 alias du='du -hs'
+alias lld="ls -alFd"
+alias lsd="ls -Ad"
 
 
 # aliases for nano
