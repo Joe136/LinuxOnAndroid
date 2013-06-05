@@ -2,8 +2,20 @@
 # See the file "license.terms" for information on usage and redistribution of
 # this file, and for a DISCLAIMER OF ALL WARRANTIES.
 
+## BashRC
 #ignore_bashrc = true
+#bashrc_mode = normal | (reduced) | nocomment | minimized
+#bashrc_color = color | nocolor
+#bashrc_reset_ps1_fct = false
+#bashrc_aliases = false
+#bashrc_bash_completition = false
+#bashrc_command_not_found = false
+#bashrc_ssh_use_server_ip = false
+#bashrc_history = false
+
+## Bash Aliases
 #ignore_bash_aliases = true
+
 #ignore_debian_chroot = true
 #ignore_dns_server = true
 
