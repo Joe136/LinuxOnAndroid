@@ -52,7 +52,7 @@ unset curr_arg
 
 while true; do   # Worse workaround for goto
 while true; do   # Really worse workaround for goto
-##---------------------------Check Arguments--------------------------##
+##---------------------------Check Arguments----------------------------------##
 i=0
 #for (( i=$((BASH_ARGC - 1)); $((i >= 0)); i=$((i - 1)) )); do
 #for (( i=$((-1)); $((i >= -BASH_ARGC)); i=$((i - 1)) )); do
@@ -67,80 +67,80 @@ until test "$((i > -BASH_ARGC))" == "0"; do
     break
   elif [ "$(echo "$curr_arg" | head -c 2)" == "--" ];then
     case "$arg" in
-    ##-------------------------Architecture---------------------------##
+    ##-----------------------Architecture-------------------------------------##
     --architecture)
       i=$((i - 1))
       architecture="${BASH_ARGV[$i]}"
       arg_arch="true"
     ;;
-    ##-------------------------Install Path of linux Script-----------##
+    ##-----------------------Install Path of linux Script---------------------##
     --bin)
       i=$((i - 1))
       arg_bin="${BASH_ARGV[$i]}"
     ;;
-    ##-------------------------Config Path----------------------------##
+    ##-----------------------Config Path--------------------------------------##
     --config)
       echo "WARNING: Do not change the default config path."
       i=$((i - 1))
       config_path="${BASH_ARGV[$i]}"
     ;;
-    ##-------------------------System User Home-----------------------##
+    ##-----------------------System User Home---------------------------------##
     --home)
       echo "WARNING: home"
       i=$((i - 1))
       arg_home="${BASH_ARGV[$i]}"
     ;;
-    ##-------------------------Image Path-----------------------------##
+    ##-----------------------Image Path---------------------------------------##
     --img)
       i=$((i - 1))
       img="${BASH_ARGV[$i]}"
       arg_img="true"
     ;;
-    ##-------------------------Initialize-----------------------------##
+    ##-----------------------Initialize---------------------------------------##
     --init)
       arg_init="true"
     ;;
-    ##-------------------------Mount Path-----------------------------##
+    ##-----------------------Mount Path---------------------------------------##
     --mnt)
       i=$((i - 1))
       mnt="${BASH_ARGV[$i]}"
       arg_mnt="true"
     ;;
-    ##-------------------------Use native mount-----------------------##
+    ##-----------------------Use native mount---------------------------------##
     --native)
       arg_native="--native"
     ;;
-    ##-------------------------System PATH----------------------------##
+    ##-----------------------System PATH--------------------------------------##
     --path)
       i=$((i - 1))
       arg_path_abs="${BASH_ARGV[$i]}"
     ;;
-    ##-------------------------System PATH----------------------------##
+    ##-----------------------System PATH--------------------------------------##
     --pre-path)
       i=$((i - 1))
       arg_path_pre="${BASH_ARGV[$i]}"
     ;;
-    ##-------------------------System PATH----------------------------##
+    ##-----------------------System PATH--------------------------------------##
     --post-path)
       i=$((i - 1))
       arg_path_post="${BASH_ARGV[$i]}"
     ;;
-    ##-------------------------System Name----------------------------##
+    ##-----------------------System Name--------------------------------------##
     --system)
       arg_system="true"
       i=$((i - 1))
       system="${BASH_ARGV[$i]}"
     ;;
-    ##-------------------------System TERM----------------------------##
+    ##-----------------------System TERM--------------------------------------##
     --term)
       i=$((i - 1))
       arg_term="${BASH_ARGV[$i]}"
     ;;
-    ##-------------------------Install Path of linux Script-----------##
+    ##-----------------------Install Path of linux Script---------------------##
     --update)
       arg_update="--refresh"
     ;;
-    ##-------------------------Unknown Argument-----------------------##
+    ##-----------------------Unknown Argument---------------------------------##
     *)
       echo -e "$0: unknown argument: $curr_arg\n"
       "$0" -h
@@ -152,13 +152,13 @@ until test "$((i > -BASH_ARGC))" == "0"; do
 
     for arg in `echo -e "$args"`; do
       case "$arg" in
-    ##-------------------------System Name----------------------------##
+    ##-----------------------System Name--------------------------------------##
       s)
         arg_system="true"
         i=$((i - 1))
         system="${BASH_ARGV[$i]}"
       ;;
-      ##-----------------------Unknown--------------------------------##
+      ##---------------------Unknown------------------------------------------##
       *)
         echo -e "$0: unknown argument: -$arg\n"
         "$0" -h
@@ -179,7 +179,7 @@ until test "$((i > -BASH_ARGC))" == "0"; do
       fi  
     fi
 
-    ##-------------------------Unknown Argument-----------------------##
+    ##-----------------------Unknown Argument---------------------------------##
     #echo -e "$0: unknown argument: $curr_arg\n"
     #"$0" -h
     #exit 2 #TODO set the standard return value for this case
@@ -252,7 +252,7 @@ if [ ! -e "$config_path/config.default" ]; then
   echo "#export TERM=screen" >> "$config_path/config.default"
   echo "#nw_service=ifupdown" >> "$config_path/config.default"
 fi
-##---------------------------Everything Initialized-----------------------------## TODO length of this line
+##---------------------------Everything Initialized---------------------------##
 
 
 
