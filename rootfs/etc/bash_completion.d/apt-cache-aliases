@@ -1,0 +1,69 @@
+# Debian apt-cache(8) completion                           -*- shell-script -*-
+
+_apt_cache_mod()
+{
+    local cur prev words cword
+    _init_completion || return
+
+    local special
+    special=${words[0]}
+    special=${special:4}
+    [[ "${special}" == "search-names" ]] && special="search"
+
+		if [[ "${prev:0:4}" == "apt-" ]]; then
+			prev="${prev:4}"
+		fi
+
+    case $prev in
+             -c|-p|-s|--config-file|--pkg-cache|--src-cache)
+                 _filedir
+                 return 0
+                 ;;
+             search)
+                 if [[ "$cur" != -* ]]; then
+                    return 0
+                 fi
+                 ;;
+    esac
+
+		if [[ "$cur" == -* ]]; then
+
+        COMPREPLY=( $( compgen -W '-h -v -p -s -q -i -f -a -g -c \
+                -o --help --version --pkg-cache --src-cache \
+                --quiet --important --full --all-versions \
+                --no-all-versions --generate --no-generate \
+                --names-only --all-names --recurse \
+                --config-file --option --installed' -- "$cur" ) )
+
+				return 0
+    fi
+
+    if [[ -n $special ]]; then
+        case $special in
+        add)
+            _filedir
+            return 0
+            ;;
+
+        showsrc)
+            COMPREPLY=( $( apt-cache dumpavail | \
+                command grep "^Source: $cur" | sort -u | cut -f2 -d" " ) )
+            return 0
+            ;;
+
+        *)
+            COMPREPLY=( $( apt-cache --no-generate pkgnames "$cur" 2> /dev/null ) )
+            return 0
+            ;;
+
+        esac
+    fi
+
+    return 0
+} &&
+complete -F _apt_cache_mod apt-search &&
+complete -F _apt_cache_mod apt-search-names &&
+complete -F _apt_cache_mod apt-show &&
+complete -F _apt_cache_mod apt-showpkg
+
+# ex: ts=4 sw=4 et filetype=sh
