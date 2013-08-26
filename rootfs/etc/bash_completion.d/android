@@ -1,0 +1,16 @@
+_android()
+{
+  local cur
+  COMPREPLY=()
+  comm=${COMP_WORDS[1]}
+  subcomm=${COMP_WORDS[2]}
+  cur=${COMP_WORDS[COMP_CWORD]}
+  if [[ "$COMP_CWORD" == "1" ]]; then
+    COMPREPLY=($(compgen -W 'start stop restart dumpsys boost shell stats info cpu' -- $cur ) )
+  elif [[ "$COMP_CWORD" == "2" && "$comm" == "dumpsys" ]]; then
+    COMPREPLY=($(compgen -W 'battery' -- $cur) )
+  else
+    COMPREPLY=()
+  fi
+}
+complete -F _android android
