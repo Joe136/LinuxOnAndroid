@@ -1,7 +1,8 @@
 
-# LinuxOnAndroid exclude
+# LinuxOnAndroid
 # the second line is for detecting this script as part of the project
 # if you want that it wasn't changed, add the keyword 'exclude'
+# if you want that only new aliases was added, add the keyword 'update'
 
 
 # See the file "license.terms" for information on usage and redistribution of
@@ -21,14 +22,17 @@ alias apt-install='apt-get install'
 alias apt-purge='apt-get purge'
 alias apt-remove='apt-get remove'
 alias apt-search='apt-cache search'
-alias apt-source='apt-cache source'
+alias apt-search-names='apt-cache search --names-only'
+alias apt-show='apt-cache show'
+alias apt-showpkg='apt-cache showpkg'
+alias apt-source='apt-get source'
 alias apt-update='apt-get update'
 alias apt-upgrade='apt-get upgrade'
 
 
 # extra aliases for APT
-#alias apt-list='dpkg -l'
-alias apt-list='dpkg -l | grep'
+alias apt-list='dpkg -l'
+alias apt-list-grep='dpkg -l | grep'
 
 
 # aliases for coloring
