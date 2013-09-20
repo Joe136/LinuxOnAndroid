@@ -52,68 +52,164 @@ getBBver()
 
 
 
+# arg1: image path
+checkImage()
+{
+  local size="$(du -m $1 2>/dev/null | awk '{print $1}')"
+  [[ -n "$size" ]] && [[ "$(($size > 20))" == "1" ]] && return 0
+  return 1
+}
+
+
+
+# arg1: search-path, arg2: system directory, arg3: possible part of filename
 searchImageCurrentPath()
 {
-  if [ -e "$1/$2.img" ]; then echo "$1/$2.img"; return; fi
+  if [ -e "$1/$2.img" ]; then
+    $(checkImage "$1/$2.img") && echo "$1/$2.img" && return
+  fi
+  if [ -e "$1/$2/$3.img" ]; then
+    $(checkImage "$1/$2/$3.img") && echo "$1/$2/$3.img" && return
+  fi
 
   if [ -d "$1/$2" ]; then
-    count="$(ls -A $1/$2/*.img | awk 'BEGIN{ORS="\t"}{print $0}' | awk -F "\t" '{print NF}')"
-    if [ "$(($count == 1))" == "1" ]; then echo "$sdcard/$2/*.img"; return;
+    # count="$(ls -A $1/$2/*.img | awk 'BEGIN{ORS="\t"}{print $0}' | awk -F "\t" '{print NF}')"
+    count="$(ls $1/$2/*.img 2>/dev/null | awk 'BEGIN{ORS="\t"}{print $0}' | awk -F "\t" '{print NF - 1}')"
+    # echo "point8: " $(ls $1/$2/*.img) 1>&2
+    if [ "$(($count == 1))" == "1" ]; then
+      $(checkImage "$1/$2/*.img") && echo "$(ls $1/$2/*.img)" && return
     elif [ "$(($count > 1))" == "1"  ]; then
-      echo "Is one of these images your System?" 1>&2
-      echo "0: No" 1>&2
-      ls -A $1/$2/*.img | awk '{print NR ": " $1}' 1>&2
-      unset var
-      read var
-      if [ "$(($var <= $count))" == "1" ] && [ "$(($var > 0))" == "1" ]; then
-        echo "$(ls -A $1/$2/*.img | awk 'BEGIN{ORS="\t"}{print $0}' | awk -F "\t" '{print $'$count'}')"
-        return
+      count="$(ls $1/$2/$3.*.img $1/$2/$3_*.img 2>/dev/null | awk 'BEGIN{ORS="\t"}{print $0}' | awk -F "\t" '{print NF - 1}')"
+      if [ "$(($count == 1))" == "1" ]; then
+         $(checkImage "$1/$2/$3.*.img") && echo "$(ls $1/$2/$3.*.img)" && return
+         $(checkImage "$1/$2/$3_*.img") && echo "$(ls $1/$2/$3_*.img)" && return
+      elif [ "$(($count > 1))" == "1" ]; then
+        :
       fi
+
+      #echo "$(ls $1/$2/*.img)"
+      return
+
+      # echo "Is one of these images your System?" 1>&2
+      # echo "0: No" 1>&2
+      # ls -A $1/$2/*.img | awk '{print NR ": " $1}' 1>&2
+      # unset var
+      # read var
+      # if [ "$(($var <= $count))" == "1" ] && [ "$(($var > 0))" == "1" ]; then
+      #   # echo "$(ls -A $1/$2/*.img | awk 'BEGIN{ORS="\t"}{print $0}' | awk -F "\t" '{print $'$count'}')"
+      #   echo "$(ls $1/$2/*.img | awk 'BEGIN{ORS="\t"}{print $0}' | awk -F "\t" '{print $'$count'}')"
+      #   return
+      # fi
     fi
   fi
 }
 
-searchImage() # arg1: kit-path, arg2: given system
+
+
+# arg1: kit-path, arg2: given system
+searchImage()
 {
   local bname="$(basename $2)"
-  if [ "$(($(echo $bname | awk 'BEGIN{FS="."{print NF}}') > 1))" == "1" ]; then
-    if [ "$(echo $2 | awk 'BEGIN{FS="."}{print $NF}')" == "img" ]; then
-      : #TODO
-    fi
-  elif [ "$bname" == "$2" ]; then
-    : #TODO
-  #elif []; then
-  #  : #TODO
+
+  if [ "$bname" == "$2" ]; then
+    local systempath="$1"
+  else
+    local len1="${#bname}"
+    local len2="${#2}"
+    local systempath="${2:0:$((len2 - len1))}"
+    [[ -d "$(realpath "$systempath")" ]] && local systempath="$(realpath "$systempath")"
   fi
 
-  if [ -e "$1/$2.img" ]; then echo "$1/$2.img"; return; fi
+  if [ "$(($(echo $bname | awk 'BEGIN{FS="."}{print NF}') > 1))" == "1" ]; then
+    # If bname has a suffix
+    if [ "$(echo $2 | awk 'BEGIN{FS="."}{print $NF}')" == "img" ]; then
+      # If suffix is 'img'
+      local systembase="$(echo $bname | awk 'BEGIN{FS=".";ORS=""}{rec = 0; for (i = 1; i < NF; i++) { if (rec == 1) print "."; rec = 1; print $i; } }')"
+      local systemsubbase="$(echo $bname | awk 'BEGIN{FS="."}{print $1}')"
+    elif [ "$bname" == "$2" ]; then
+      # If the clean system-name with suffix is given
+      local systembase="$bname"
+      local systemsubbase="$(echo $bname | awk 'BEGIN{FS="."}{print $1}')"
+    else
+      #If path is set and suffix is unknown
+      local systembase="$bname"
+      local systemsubbase="$(echo $bname | awk 'BEGIN{FS="."}{print $1}')"
+    fi
+  elif [ "$(($(echo $bname | awk 'BEGIN{FS="_"}{print NF}') > 1))" == "1" ]; then
+    # If bname has a suffix
+    if [ "$(echo $2 | awk 'BEGIN{FS="."}{print $NF}')" == "img" ]; then
+      # If suffix is 'img'
+      local systembase="$(echo $bname | awk 'BEGIN{FS="_";ORS=""}{rec = 0; for (i = 1; i < NF; i++) { if (rec == 1) print "_"; rec = 1; print $i; } }')"
+      local systemsubbase="$(echo $bname | awk 'BEGIN{FS="_"}{print $1}')"
+    elif [ "$bname" == "$2" ]; then
+      # If the clean system-name with suffix is given
+      local systembase="$bname"
+      local systemsubbase="$(echo $bname | awk 'BEGIN{FS="_"}{print $1}')"
+    else
+      #If path is set and suffix is unknown
+      local systembase="$bname"
+      local systemsubbase="$(echo $bname | awk 'BEGIN{FS="_"}{print $1}')"
+    fi
+  elif [ "$bname" == "$2" ]; then
+    # If the clean system-name is given
+    local systembase="$bname"
+  else
+    # If path but no suffix is given
+    local systembase="$bname"
+  fi
 
-  local img="$(searchImageCurrentPath $sdcard $2)"
-  if [ ! -z "$img" ]; then echo "$img"; return; fi
+  #echo "p1: " $bname
+  #echo "p1: " $systembase
+  #echo "p1: " $systemsubbase
+  #echo "p1: " $systempath
+
+  [[ -e "$systempath/$systembase.img" ]] && $(checkImage "$systempath/$systembase.img") && echo "$systempath/$systembase.img" && return
+  [[ -e "$systempath/$bname.img" ]] && $(checkImage "$systempath/$bname.img") && echo "$systempath/$bname.img" && return
+  [[ -e "$systempath/$bname" ]] && $(checkImage "$systempath/$bname") && echo "$systempath/$bname" && return
+
+  [[ -e "$1/$systembase.img" ]] && $(checkImage "$1/$systembase.img") && echo "$1/$systembase.img" && return
+  [[ -e "$1/$bname.img" ]] && $(checkImage "$1/$bname.img") && echo "$1/$bname.img" && return
+  [[ -e "$1/$bname" ]] && $(checkImage "$1/$bname") && echo "$1/$bname" && return
+
+  local img="$(searchImageCurrentPath $sdcard $systembase $systemsubbase)"
+  [[ -n "$img" ]] && echo "$img" && return
+
+  local img="$(searchImageCurrentPath $sdcard $systemsubbase $systemsubbase)"
+  [[ -n "$img" ]] && echo "$img" && return
 
   if [ ! -z "$intern" ]; then
-    local img="$(searchImageCurrentPath $intern $2)"
-    if [ ! -z "$img" ]; then echo "$img"; return; fi
+    local img="$(searchImageCurrentPath $intern $systembase $systemsubbase)"
+    [[ -n "$img" ]] && echo "$img" && return
+    local img="$(searchImageCurrentPath $intern $systemsubbase $systemsubbase)"
+    [[ -n "$img" ]] && echo "$img" && return
   fi
 
   if [ -d "$sdcard/linux" ]; then
-    local img="$(searchImageCurrentPath $sdcard/linux $2)"
-    if [ ! -z "$img" ]; then echo "$img"; return; fi
+    local img="$(searchImageCurrentPath $sdcard/linux $systembase $systemsubbase)"
+    [[ -n "$img" ]] && echo "$img" && return
+    local img="$(searchImageCurrentPath $sdcard/linux $systemsubbase $systemsubbase)"
+    [[ -n "$img" ]] && echo "$img" && return
   fi
 
   if [ -d "$intern/linux" ]; then
-    local img="$(searchImageCurrentPath $intern/linux $2)"
-    if [ ! -z "$img" ]; then echo "$img"; return; fi
+    local img="$(searchImageCurrentPath $intern/linux $systembase $systemsubbase)"
+    [[ -n "$img" ]] && echo "$img" && return
+    local img="$(searchImageCurrentPath $intern/linux $systemsubbase $systemsubbase)"
+    [[ -n "$img" ]] && echo "$img" && return
   fi
 
   if [ -d "$sdcard/linuxonandroid" ]; then
-    local img="$(searchImageCurrentPath $sdcard/linuxonandroid $1)"
-    if [ ! -z "$img" ]; then echo "$img"; return; fi
+    local img="$(searchImageCurrentPath $sdcard/linuxonandroid $systembase $systemsubbase)"
+    [[ -n "$img" ]] && echo "$img" && return
+    local img="$(searchImageCurrentPath $sdcard/linuxonandroid $systemsubbase $systemsubbase)"
+    [[ -n "$img" ]] && echo "$img" && return
   fi
 
   if [ -d "$intern/linuxonandroid" ]; then
-    local img="$(searchImageCurrentPath $intern/linuxonandroid $1)"
-    if [ ! -z "$img" ]; then echo "$img"; return; fi
+    local img="$(searchImageCurrentPath $intern/linuxonandroid $systembase $systemsubbase)"
+    [[ -n "$img" ]] && echo "$img" && return
+    local img="$(searchImageCurrentPath $intern/linuxonandroid $systemsubbase $systemsubbase)"
+    [[ -n "$img" ]] && echo "$img" && return
   fi
 
 
