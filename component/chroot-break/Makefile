@@ -3,7 +3,7 @@
 # this file, and for a DISCLAIMER OF ALL WARRANTIES.
 
 CC          = gcc
-CFLAGS      = -std=c99 -O3 -fPIC -Wall
+CFLAGS      = -std=gnu99 -O3 -Wall
 LDFLAGS     = 
 LIBS        = 
 
@@ -15,7 +15,7 @@ bindir      = ${exec_prefix}/bin
 
 INSTALL         = /usr/bin/install
 INSTALL_PROGRAM = ${INSTALL}
-INSTALL_DATA    = ${INSTALL} -m 644
+INSTALL_DATA    = ${INSTALL} -m 755
 
 OBJ         = chroot-break
 INST        = chroot-break
