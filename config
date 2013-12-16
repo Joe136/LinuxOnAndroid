@@ -2,20 +2,46 @@
 # See the file "license.terms" for information on usage and redistribution of
 # this file, and for a DISCLAIMER OF ALL WARRANTIES.
 
+##------------------
 ## BashRC
-#ignore_bashrc = true
-#bashrc_mode = normal | (reduced) | nocomment | minimized
-#bashrc_color = color | nocolor
-#bashrc_reset_ps1_fct = false
-#bashrc_aliases = false
-#bashrc_bash_completition = false
-#bashrc_command_not_found = false
-#bashrc_ssh_use_server_ip = false
-#bashrc_history = false
+##------------------
+#include_bashrc = false             # Default: true
+#bashrc_mode = normal | (reduced) | nocomment | minimized   # Default: normal
+#bashrc_color = color | nocolor     # Default: color
+#bashrc_reset_ps1_fct = false       # Default: true
+#bashrc_aliases = false             # Default: true
 
+## Bash Completition slows down the startup time of bash, this is bad when
+## you use tmux or screen and often opens new instances
+#bashrc_bash_completition = false   # Default: true
+
+#bashrc_command_not_found = false   # Default: true
+#bashrc_ssh_use_server_ip = false   # Default: true
+#bashrc_history = false             # Default: true
+
+
+##------------------
 ## Bash Aliases
-#ignore_bash_aliases = true
+##------------------
+#include_bash_aliases = true        # Default: true
 
-#ignore_debian_chroot = true
-#ignore_dns_server = true
+
+##------------------
+## Undefined
+##------------------
+#include_debian_chroot = true       # Default: true
+#include_dns_server = true          # Default: true
+
+
+##------------------
+## Networking
+##------------------
+#include_network = true             # Default: false
+#network_service = ifupdown | nm | wicd   # Default: ifupdown
+
+
+##------------------
+## License
+##------------------
+#public_domain_only = true          # Default: true
 

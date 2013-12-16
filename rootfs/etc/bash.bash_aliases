@@ -136,4 +136,5 @@ alias launch="xdg-open"
 alias free="free; echo \"\"; cat /proc/swaps"
 #alias newscreen="screen -dmS linux -T xterm-color -s /usr/bin/tmux"
 alias newscreen="screen -dmS linux -s /usr/bin/tmux"
-
+alias gita='gitk --all'
+alias env='env | sort | less -S'

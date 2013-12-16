@@ -6,9 +6,11 @@ _android()
   subcomm=${COMP_WORDS[2]}
   cur=${COMP_WORDS[COMP_CWORD]}
   if [[ "$COMP_CWORD" == "1" ]]; then
-    COMPREPLY=($(compgen -W 'start stop restart dumpsys boost shell stats info cpu' -- $cur ) )
+    COMPREPLY=($(compgen -W 'start stop restart dumpsys boost wlan shell stats info cpu' -- $cur ) )
   elif [[ "$COMP_CWORD" == "2" && "$comm" == "dumpsys" ]]; then
     COMPREPLY=($(compgen -W 'battery' -- $cur) )
+  elif [[ "$COMP_CWORD" == "2" && "$comm" == "wlan" ]]; then
+    COMPREPLY=($(compgen -W 'power ping' -- $cur) )
   else
     COMPREPLY=()
   fi

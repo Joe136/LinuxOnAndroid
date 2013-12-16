@@ -1,0 +1,40 @@
+#!/bin/bash
+
+unset unhide
+
+[[ "$1" == "-u" ]] && unhide="true"
+
+if [[ "$unhide" == "true" ]]; then
+  for (( i=$((BASH_ARGC - 1)); $((i >= 0)); i=$((i - 1)) )); do
+    if [[ -h ".${BASH_ARGV[$i]}" ]]; then
+      # If string is a symbolic link
+      echo "mv .${BASH_ARGV[$i]} ${BASH_ARGV[$i]}"
+      mv ".${BASH_ARGV[$i]}" "${BASH_ARGV[$i]}"
+    elif [[ -f ".${BASH_ARGV[$i]}" ]]; then
+      # If string is a file
+      echo "mv .${BASH_ARGV[$i]} ${BASH_ARGV[$i]}"
+      mv ".${BASH_ARGV[$i]}" "${BASH_ARGV[$i]}"
+    elif [[ -d ".${BASH_ARGV[$i]}" ]]; then
+      # if string is a directory
+      echo "mv .${BASH_ARGV[$i]} ${BASH_ARGV[$i]}"
+      mv ".${BASH_ARGV[$i]}" "${BASH_ARGV[$i]}"
+    fi
+  done
+else
+  for (( i=$((BASH_ARGC - 1)); $((i >= 0)); i=$((i - 1)) )); do
+    if [[ -h "${BASH_ARGV[$i]}" ]]; then
+      # If string is a symbolic link
+      echo "mv ${BASH_ARGV[$i]} .${BASH_ARGV[$i]}"
+      mv "${BASH_ARGV[$i]}" ".${BASH_ARGV[$i]}"
+    elif [[ -f "${BASH_ARGV[$i]}" ]]; then
+      # If string is a file
+      echo "mv ${BASH_ARGV[$i]} .${BASH_ARGV[$i]}"
+      mv "${BASH_ARGV[$i]}" ".${BASH_ARGV[$i]}"
+    elif [[ -d "${BASH_ARGV[$i]}" ]]; then
+      # if string is a directory
+      echo "mv ${BASH_ARGV[$i]} .${BASH_ARGV[$i]}"
+      mv "${BASH_ARGV[$i]}" ".${BASH_ARGV[$i]}"
+    fi
+  done
+fi
+
