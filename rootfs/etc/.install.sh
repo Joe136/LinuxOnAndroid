@@ -57,6 +57,22 @@ if [ "$ignore_dns_server" != "true" ]; then
   #echo "127.0.0.1 localhost" > "$mnt/etc/hosts"
 fi
 
+# nanorc
+if [ -e "$mnt/etc/nanorc" ]; then
+  second_line="$(cat "$mnt/etc/nanorc" | head -n 2 | tail -n 1)"
+  if [ "$second_line" != "# LinuxOnAndroid" ]; then
+    cat "$mnt/etc/nanorc" | head -n 1 > "$mnt/etc/nanorc.build"
+    echo "# LinuxOnAndroid" >> "$mnt/etc/nanorc.build"
+    cat "$mnt/etc/nanorc" | tail -n $(($(cat "$mnt/etc/nanorc" | wc -l) - 1)) >> "$mnt/etc/nanorc.build"
+    cat "nanorc.build" >> "$mnt/etc/nanorc.build"
+    mv "$mnt/etc/nanorc.build" "$mnt/etc/nanorc"
+  fi
+#else
+#  cp -f "nanorc" "$mnt/etc/nanorc"
+#  chmod 644 "$mnt/etc/nanorc"
+#  chown root:root "$mnt/etc/nanorc"
+fi
+
 
 for d in */.install.sh; do
   cd "$d"

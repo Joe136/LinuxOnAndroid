@@ -6,7 +6,7 @@ echo '      Creating /etc/loa/*.conf files ...'
 mkdir -p "$mnt/etc/loa"
 
 touch "$mnt/etc/loa/android.conf"
-touch "$mnt/etc/loa/mountdisk.conf"
+touch "$mnt/etc/loa/mkdisk.conf"
 touch "$mnt/etc/loa/ssh.conf"
 touch "$mnt/etc/loa/vnc.conf"
 

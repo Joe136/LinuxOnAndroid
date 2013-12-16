@@ -43,6 +43,16 @@ boost)
   echo "boost" | nc localhost 4242
 
 ;;
+wlan)
+  if [ "$2" == "power" ]; then
+    [[ "$3" == "off" ]] && iwconfig wlan0 power off
+    [[ "$3" == "on" ]]  && iwconfig wlan0 power on
+  elif [ "$2" == "ping" ]; then
+    [[ "$3" == "off" ]] && echo 1 > /proc/sys/net/ipv4/icmp_echo_ignore_all
+    [[ "$3" == "on" ]]  && echo 0 > /proc/sys/net/ipv4/icmp_echo_ignore_all
+  fi
+
+;;
 shell)
   echo "shell" | nc localhost 4242
   read pass
@@ -60,6 +70,8 @@ stats|info)
   echo ""
   ifconfig rmnet0 | head -n 3 && ifconfig rmnet0 | tail -n 2 | head -n 1
   echo ""
+  echo -n "Response to Ping: "
+  if [ "$(cat /proc/sys/net/ipv4/icmp_echo_ignore_all)" == "1" ]; then echo "off"; else echo "on"; fi
   cpu_stats
 
 ;;
@@ -68,7 +80,7 @@ cpu)
 
 ;;
 *)
-  echo "`basename $0` start|stop|restart|dumpsys|boost|shell|status|info|cpu" 2> /dev/null
+  echo "`basename $0` start|stop|restart|dumpsys|boost|wlan|shell|status|info|cpu" 2> /dev/null
 
 ;;
 esac

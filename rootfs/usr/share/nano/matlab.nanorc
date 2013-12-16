@@ -1,0 +1,36 @@
+## Here is an example for matlab.
+##
+syntax "matlab" "\.m?$"
+color brightred "\b([0-9]+[Ee][-]?[0-9]+|([0-9]*\.[0-9]+|[0-9]+\.)([Ee][-]?[0-9]+)?)[fFlL]?" 
+color brightgreen "\<(size|zeros|ones|min|max|varargs|sqrt|atan2|asin|acos|log10|log|real|error|isscalar|isstr|strcmp|log2|Inf|isvector|strcat|fsolve|islogical|isempty|isnumeric|prod|round|dims|cumprod|ismatrix|floor|sort|ceil|linspace|isnan|isinf|nan_inf|repmat|colums|rows|sum|rem|reshape|conv|length|usage|log2|abs|setstr|printf|sprintf|fprintf|fread|fopen|fclose|system|unlink)\>"
+color magenta "\<(function|endfunction|switch|case|endswitch|otherwise|unwind_protect|unwind_protect_cleanup|end_unwind_protect|try|catch|end_try_catch|end|if|else|elseif|endif|break|continue|for|endfor|return|do|until|while|endwhile|global|nargin|nargout|assert)\>"
+color brightred "\<(function|endfunction|global|for|end|while|if|else|elseif|endif|break|switch|case|and|or|and)\>"
+color brightyellow "\<(info|whatsnew|hostid|help|lookfor|what|which|type|edit|pcode|quit|exit|who|whos|save|load|memory|clear|pack|workspace|pathdef|path|addpath|echo|format|diary|pwd|cd|dir)\>"
+color brightgreen "\<(logical|isnumeric|islogical|isempty|isequal|reshape|repmat|find|length|size|cross|kron|linspace|logspace|meshgrid|zeros|ones|rand|randn|end|ind2sub|sub2ind|repmat|cat|ndims|ndgrid|permute|ipermute|shiftdim|flipdim|squeeze|struct|fieldnames|getfield|setfield|rmfield|isfield|isstruct|cell|celldisp|cellplot|cellstr|deal|iscell|num2cell|cell2struct|struct2cell|lists|varargin|varargout|inline|argnames|formula|char|vectorsize|class|isa|isobject|methods|inferioto|superioto|horzcat|vertcat|subsref|subsasgn|subsindex)\>"
+color brightgreen "\<(ans|inf|NaN|Pi|eps|log2|pow2|realmin|realmax|all|any|exist|bitset|bitget|bitmax|bitcmp|bitand|bitor|bitxor|bitshift|ismember|unique|union|intersect|setdiff|setxor|eval|feval|builtin|assignin|evalin|run|nargchk|nargin|nargout|inputname|input|pause|error|warning|lasterr|lastwarn|disp|fprintf|sprintf)\>"
+color brightgreen "\<(abs|angle|real|imag|conj|cplxpair|ceil|fix|floor|round|mod|rem|sign|factor|primes|gcd|lcm|rat|rats|perms|nchoosek|sqrt|exp|log|pow2|nextpow|log2|log10|sin|sinh|asin|asinh|csc|csch|ascc|ascch|cos|cosh|acos|acosh|sec|sech|asec|asech|tan|tanh|atan|atan2|atanh|cot|coth|acot|acoth|cart2pol|cart2sph|pol2cartsph2cart|besselj|bessely|besseli|besselk|besselh|airy|beta|betainc|betaln|ellipj|ellipke|erf|erfc|erfcx|erfinv|gamma|gammainc|gammaln|expint|legendre)\>"
+color brightgreen "\<(eye|diag|tril|triu|fliplr|flipud|rot90|compan|cond|normest|norm|det|see|rank|trace|null|orth|inv|lu|qr|svd|gsvd|roots|poly)\>"
+color brightgreen "\<(sum|cumsum|prod|cumprod|sort|sortrows|max|min|median|mean|std|cov|corrcoef|diff|gradient|polyfit|interpft|spline|ppval|fft|ifft|fft2|ifft2|fftn|ifftn|filter|filter2)\>"
+color brightred "\<(root|figure|axes|line|patch|surface|text|plot|fplot|ezplot|loglog|semilogx|semilogy|polar|piotyy|plot3|meshgrid|mesh|meshc|meshz|axis|hold|grid|bar|barh|pie|subplot|zoom|colormap|label|legend|errorbar|hist|stem|stairs|scatter|roze)\>"
+
+##color red "\{[0-9:(end)-+]*?\}"
+##color red "\([0-9:(end)-+\[\]]*?\)"
+color red "[\{\}\(\)]"
+
+##
+##
+## String highlighting.  You will in general want your comments and
+## strings to come last, because syntax highlighting rules will be
+## applied in the order they are read in.
+##
+## Comment highlighting
+color cyan "%.*"
+## string highlighting
+color yellow "(\s|,|\[|\()'.*?'(\)|,|\s|\])"
+##color yellow "'.*'"
+color white "\[" "\]" "[\*+-=<>;\\/\.\^!&|,]"
+icolor green "\\.|\\[A-Z]*"
+
+## Trailing whitespace
+color ,green "[[:space:]]+$"
+

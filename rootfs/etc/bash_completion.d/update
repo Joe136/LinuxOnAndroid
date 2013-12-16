@@ -1,0 +1,14 @@
+_update_sh()
+{
+  COMPREPLY=()
+  comm=${COMP_WORDS[1]}
+  prev=${COMP_WORDS[COMP_CWORD-1]}
+  if [[ "$COMP_CWORD" == "1" ]]; then
+    COMPREPLY=($(compgen -W '--noupdate --init' -- $comm ) )
+  elif [[ "$prev" == ">" || "$prev" == "2>" ]]; then
+    :
+  else
+    COMPREPLY=()
+  fi
+}
+complete -F _update_sh update.sh

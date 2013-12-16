@@ -71,6 +71,11 @@ alias lld="ls -alFd"
 alias lsd="ls -Ad"
 
 
+# aliases for cd
+alias ..="cd .."
+alias cd-="cd - > /dev/null"
+
+
 # aliases for nano
 alias nanoc="nano -Y c"
 alias nanocss="nano -Y css"
@@ -83,6 +88,8 @@ alias nanotex="nano -Y tex"
 #alias nanomutt="nano -Y mutt"
 alias nanopatch="nano -Y patch"
 alias nanoman="nano -Y man"
+alias nanomake="nano -Y makefile"
+alias nanomatlab="nano -Y matlab"
 #alias nanogroff="nano -Y groff"
 alias nanoperl="nano -Y perl"
 alias nanopython="nano -Y python"
@@ -90,6 +97,7 @@ alias nanoruby="nano -Y ruby"
 alias nanojava="nano -Y java"
 alias nanoawk="nano -Y awk"
 alias nanoasm="nano -Y asm"
+alias nanor="nano -Y r"
 alias nanosh="nano -Y sh"
 #alias nanopov="nano -Y pov"
 alias nanoxml="nano -Y xml"
@@ -105,6 +113,8 @@ alias nano_tex="nano -Y tex"
 #alias nano_mutt="nano -Y mutt"
 alias nano_patch="nano -Y patch"
 alias nano_man="nano -Y man"
+alias nano_make="nano -Y makefile"
+alias nano_matlab="nano -Y matlab"
 #alias nano_groff="nano -Y groff"
 alias nano_perl="nano -Y perl"
 alias nano_python="nano -Y python"
@@ -112,9 +122,14 @@ alias nano_ruby="nano -Y ruby"
 alias nano_java="nano -Y java"
 alias nano_awk="nano -Y awk"
 alias nano_asm="nano -Y asm"
+alias nano_r="nano -Y r"
 alias nano_sh="nano -Y sh"
 #alias nano_pov="nano -Y pov"
 alias nano_xml="nano -Y xml"
+
+
+# aliases for desktop environment
+alias launch="xdg-open"
 
 
 # general aliases

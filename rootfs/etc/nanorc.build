@@ -1,0 +1,6 @@
+
+## MatLab-type files
+include "/usr/share/nano/matlab.nanorc"
+
+## R-type files
+include "/usr/share/nano/r.nanorc"

@@ -4,13 +4,13 @@
 
 #  TODO Install anything here
 
-echo "      Installing bin-scripts ..."
-for file in *; do
-  cp -f "$file" "$mnt/usr/bin/"
-  chmod 755 "$mnt/usr/bin/$file"
-  chown root:root "$mnt/usr/bin/$file"
-done
+mkdir -p "$mnt/usr/share/nano"
 
+for file in *; do
+  cp -f "$file" "$mnt/usr/share/nano"
+  chmod 644 "$mnt/usr/share/nano/$file"
+  chown root:root "$mnt/usr/share/nano/$file"
+done
 
 for d in */.install.sh; do
   cd "$d"

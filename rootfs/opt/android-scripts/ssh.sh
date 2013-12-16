@@ -14,10 +14,10 @@ if [ ! -e /etc/init.d/ssh ]; then
   apt-get -y install openssh-server
 fi
 
-/etc/init.d/ssh stop
+/etc/init.d/ssh stop "-p $1"
 
-if [ ! "$1" = "stop" ]; then
-  /etc/init.d/ssh start
+if [ ! "$2" = "stop" ]; then
+  /etc/init.d/ssh start "-p $1"
   echo "Fingerprint:"
   ssh-keygen -l -f /etc/ssh/ssh_host_rsa_key.pub
   ssh-keygen -l -f /etc/ssh/ssh_host_dsa_key.pub

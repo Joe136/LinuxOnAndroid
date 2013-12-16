@@ -1,10 +1,12 @@
 IMPORTANT:
-mksh does not use BASH_ARGC and BASH_ARGV (install.sh)
+mksh does not use BASH_ARGC and BASH_ARGV (install.sh) | test current solution | seems it works, but 'mksh install.sh linux' registers the first/last argument two times
 
 
 REST:
-rebuild scripts/linux to use functions (e.g. for main mount) instead of switch with loop
-speedup bashrc, it's really slow
+rebuild scripts/linux to use functions (e.g. for main mount) instead of switch with loop | began | moved all parts into functions
+speedup bashrc, it's really slow, test it first | bash_completition is slow | began with auto-creating reduced versions of bashrc/bash_aliases
+design a method to trigger the installation of rootfs with config file
+write program to read config file for installing rootfs parts
 
 
 UNIMPORTANT:
