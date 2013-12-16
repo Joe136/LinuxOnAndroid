@@ -26,19 +26,26 @@ fi
 
 
 
+##-------------------------Prepare Argument List------------------------------##
+unset BASH_ARGV
+BASH_ARGC="$#"
+i=-1
+for curr_arg in "$@"; do
+  set +A BASH_ARGV -- [$i]="$curr_arg"
+  i=$((i - 1))
+done
+unset curr_arg
+
+
+
 ##---------------------------Start function_main------------------------------##
 function function_main()
 {
   function_preCheckArguments
   function_checkArguments
 
-  if [ "$command" != "install" ]; then
-    [ -z "$mnt" ] && mnt="$home/$system"
-  fi
-  if [ -z "$config_path" ]; then
-    config_path="$home/linuxonandroid"
-  fi
-
+  [[ "$command" != "install" ]] && [ -z "$mnt" ] && mnt="$home/$system"
+  [[ -z "$config_path" ]] && config_path="$home/linuxonandroid"
 
 
   echo "point1"
@@ -99,12 +106,20 @@ function function_main()
     #eval chroot "$mnt" /opt/android-scripts/vnc.sh "$vncport" $arg_rest2
 
   ;;
-  apache)
+  nx)
     function_mount
 
     cd "$mnt"
-    chroot "$mnt" /opt/android-scripts/apache.sh $arg_rest2
-    #eval chroot "$mnt" /opt/android-scripts/apache.sh $arg_rest2
+    chroot "$mnt" /opt/android-scripts/vnc.sh "$vncport" $arg_rest2
+    #eval chroot "$mnt" /opt/android-scripts/vnc.sh "$vncport" $arg_rest2
+
+  ;;
+  http)
+    function_mount
+
+    cd "$mnt"
+    chroot "$mnt" /opt/android-scripts/http.sh $arg_rest2
+    #eval chroot "$mnt" /opt/android-scripts/http.sh $arg_rest2
 
   ;;
   install)
@@ -163,32 +178,20 @@ function function_main()
 
   ;;
   help)
-    case "$2" in
-      "")
+    function_help
 
-      ;;
-      mount)
-        echo "Mount the Image and system-parts."
-      ;;
-      mountsd)
-        echo "Make the SD card accessible to the chroot environment."
-      ;;
-      *)
-        echo "Command unknown"
-      ;;
-    esac
-;;
-*)
-  echo "Usage: $(basename $0) [help|[u[n]]mount[sd|img]|chroot|ssh|vnc|install|passwd|hardinstall]"
-  exit 1
+  ;;
+  *)
+    echo "Usage: $(basename $0) [help|[u[n]]mount[sd|img]|chroot|ssh|vnc|nx|http|install|passwd|hardinstall]"
+    exit 1
 
-;;
-esac
+  ;;
+  esac
 }
 
 
 
-currentscriptpath()
+function currentscriptpath()
 {
   local fullpath=`echo "$(readlink -f $0)"`
   local fullpath_length=`echo ${#fullpath}`
@@ -201,7 +204,7 @@ currentscriptpath()
 
 
 
-getloopno()
+function getloopno()
 {
 for i in $(seq 255 -1 0); do
   if [ ! -e "/dev/block/loop$i" ]; then
@@ -219,17 +222,6 @@ done
 ##---------------------------Start function_preCheckArguments-----------------##
 function function_preCheckArguments()
 {
-  ##-------------------------Prepare Argument List----------------------------##
-  unset BASH_ARGV
-  BASH_ARGC="$#"
-  i=-1
-  for curr_arg in "$@"; do
-    set +A BASH_ARGV -- [$i]="$curr_arg"
-    i=$((i - 1))
-  done
-  unset curr_arg
-  
-  
   if [ "$command" != "install" ]; then
     ##-------------------------Check Arguments----------------------------------##
     i=0
@@ -237,8 +229,9 @@ function function_preCheckArguments()
     #for (( i=$((-1)); $((i >= -BASH_ARGC)); i=$((i - 1)) )); do
     until test "$((i > -BASH_ARGC))" == "0"; do
       i=$((i - 1))
-      if [ "$(echo "${BASH_ARGV[$i]}" | head -c 2)" == "--" ];then
-        case "$arg" in
+      curr_arg="${BASH_ARGV[$i]}"
+      if [ "$(echo "$curr_arg" | head -c 2)" == "--" ];then
+        case "$curr_arg" in
         ##---------------------Config Path--------------------------------------##
         --config)
           echo "WARNING: Do not change the default config path."
@@ -275,7 +268,7 @@ function function_preCheckArguments()
       . "$config_path/config.$system"
     fi
   fi
-}
+} #end Fct
 
 
 
@@ -497,7 +490,7 @@ function function_mount()
     #  #  mount -o bind /sbin "$mnt/mnt/sbin"
     #  #fi
     #fi
-    continue
+    return
   fi
 
   echo "Mounting: Prepwork ..."
@@ -884,6 +877,7 @@ function function_install()
     #[[ "$arg_ramdisk" == "true" ]] && tmp_ramdisk="$ramdisk"
     [[ -n "$sshport" ]] && tmp_sshport="$sshport"
     [[ -n "$vncport" ]] && tmp_vncport="$vncport"
+    [[ -n "$vncuser" ]] && tmp_vncuser="$vncuser"
 
     # ! grep -qe "^mountdefault=" "$config_path/config.$system" unset mountdefault
     unset mountdefault
@@ -904,6 +898,7 @@ function function_install()
     #[[ -n "$tmp_ramdisk" ]] && ramdisk="$tmp_ramdisk"
     [[ -n "$tmp_sshport" ]] && sshport="$tmp_sshport"
     [[ -n "$tmp_vncport" ]] && vncport="$tmp_vncport"
+    [[ -n "$tmp_vncuser" ]] && vncuser="$tmp_vncuser"
   fi
 
 
@@ -934,12 +929,34 @@ function function_install()
     echo "ramdisk=\"$ramdisk\"" >> "$config_path/config.$system"
     echo "sshport=\"$sshport\"" >> "$config_path/config.$system"
     echo "vncport=\"$vncport\"" >> "$config_path/config.$system"
+    echo "vncuser=\"$vncuser\"" >> "$config_path/config.$system"
     echo "autorun=\"$autorun\"" >> "$config_path/config.$system"
     echo "wlan_if=\"$wlan_if\"" >> "$config_path/config.$system"
     echo "mobile_if=\"$mobile_if\"" >> "$config_path/config.$system"
     #echo "export TERM=\"$TERM\"" >> "$config_path/config.$system"
     #echo "loopno=\"254\"" >> "$config_path/config.$system"
   fi
+}
+
+
+
+##---------------------------Start function_help------------------------------##
+function function_help()
+{
+  case "$2" in
+    "")
+
+    ;;
+    mount)
+      echo "Mount the Image and system-parts."
+    ;;
+    mountsd)
+      echo "Make the SD card accessible to the chroot environment."
+    ;;
+    *)
+      echo "Command unknown"
+    ;;
+  esac
 }
 
 

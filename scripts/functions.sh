@@ -122,7 +122,7 @@ searchImage()
 
   if [ "$(($(echo $bname | awk 'BEGIN{FS="."}{print NF}') > 1))" == "1" ]; then
     # If bname has a suffix
-    if [ "$(echo $2 | awk 'BEGIN{FS="."}{print $NF}')" == "img" ]; then
+    if [ "$(echo $bname | awk 'BEGIN{FS="."}{print $NF}')" == "img" ]; then
       # If suffix is 'img'
       local systembase="$(echo $bname | awk 'BEGIN{FS=".";ORS=""}{rec = 0; for (i = 1; i < NF; i++) { if (rec == 1) print "."; rec = 1; print $i; } }')"
       local systemsubbase="$(echo $bname | awk 'BEGIN{FS="."}{print $1}')"
@@ -163,53 +163,53 @@ searchImage()
   #echo "p1: " $systemsubbase
   #echo "p1: " $systempath
 
-  [[ -e "$systempath/$systembase.img" ]] && $(checkImage "$systempath/$systembase.img") && echo "$systempath/$systembase.img" && return
-  [[ -e "$systempath/$bname.img" ]] && $(checkImage "$systempath/$bname.img") && echo "$systempath/$bname.img" && return
-  [[ -e "$systempath/$bname" ]] && $(checkImage "$systempath/$bname") && echo "$systempath/$bname" && return
+  [[ -e "$systempath/$systembase.img" ]] && $(checkImage "$systempath/$systembase.img") && img="$systempath/$systembase.img" && return
+  [[ -e "$systempath/$bname.img" ]] && $(checkImage "$systempath/$bname.img") && img="$systempath/$bname.img" && return
+  [[ -e "$systempath/$bname" ]] && $(checkImage "$systempath/$bname") && img="$systempath/$bname" && return
 
-  [[ -e "$1/$systembase.img" ]] && $(checkImage "$1/$systembase.img") && echo "$1/$systembase.img" && return
-  [[ -e "$1/$bname.img" ]] && $(checkImage "$1/$bname.img") && echo "$1/$bname.img" && return
-  [[ -e "$1/$bname" ]] && $(checkImage "$1/$bname") && echo "$1/$bname" && return
+  [[ -e "$1/$systembase.img" ]] && $(checkImage "$1/$systembase.img") && img="$1/$systembase.img" && return
+  [[ -e "$1/$bname.img" ]] && $(checkImage "$1/$bname.img") && img="$1/$bname.img" && return
+  [[ -e "$1/$bname" ]] && $(checkImage "$1/$bname") && img="$1/$bname" && return
 
-  local img="$(searchImageCurrentPath $sdcard $systembase $systemsubbase)"
-  [[ -n "$img" ]] && echo "$img" && return
+  local l_img="$(searchImageCurrentPath $sdcard $systembase $systemsubbase)"
+  [[ -n "$l_img" ]] && img="$l_img" && return
 
-  local img="$(searchImageCurrentPath $sdcard $systemsubbase $systemsubbase)"
-  [[ -n "$img" ]] && echo "$img" && return
+  local l_img="$(searchImageCurrentPath $sdcard $systemsubbase $systemsubbase)"
+  [[ -n "$l_img" ]] && img="$l_img" && return
 
   if [ ! -z "$intern" ]; then
-    local img="$(searchImageCurrentPath $intern $systembase $systemsubbase)"
-    [[ -n "$img" ]] && echo "$img" && return
-    local img="$(searchImageCurrentPath $intern $systemsubbase $systemsubbase)"
-    [[ -n "$img" ]] && echo "$img" && return
+    local l_img="$(searchImageCurrentPath $intern $systembase $systemsubbase)"
+    [[ -n "$l_img" ]] && img="$l_img" && return
+    local l_img="$(searchImageCurrentPath $intern $systemsubbase $systemsubbase)"
+    [[ -n "$l_img" ]] && img="$l_img" && return
   fi
 
   if [ -d "$sdcard/linux" ]; then
-    local img="$(searchImageCurrentPath $sdcard/linux $systembase $systemsubbase)"
-    [[ -n "$img" ]] && echo "$img" && return
-    local img="$(searchImageCurrentPath $sdcard/linux $systemsubbase $systemsubbase)"
-    [[ -n "$img" ]] && echo "$img" && return
+    local l_img="$(searchImageCurrentPath $sdcard/linux $systembase $systemsubbase)"
+    [[ -n "$l_img" ]] && img="$l_img" && return
+    local l_img="$(searchImageCurrentPath $sdcard/linux $systemsubbase $systemsubbase)"
+    [[ -n "$l_img" ]] && img="$l_img" && return
   fi
 
   if [ -d "$intern/linux" ]; then
-    local img="$(searchImageCurrentPath $intern/linux $systembase $systemsubbase)"
-    [[ -n "$img" ]] && echo "$img" && return
-    local img="$(searchImageCurrentPath $intern/linux $systemsubbase $systemsubbase)"
-    [[ -n "$img" ]] && echo "$img" && return
+    local l_img="$(searchImageCurrentPath $intern/linux $systembase $systemsubbase)"
+    [[ -n "$l_img" ]] && img="$l_img" && return
+    local l_img="$(searchImageCurrentPath $intern/linux $systemsubbase $systemsubbase)"
+    [[ -n "$l_img" ]] && img="$l_img" && return
   fi
 
   if [ -d "$sdcard/linuxonandroid" ]; then
-    local img="$(searchImageCurrentPath $sdcard/linuxonandroid $systembase $systemsubbase)"
-    [[ -n "$img" ]] && echo "$img" && return
-    local img="$(searchImageCurrentPath $sdcard/linuxonandroid $systemsubbase $systemsubbase)"
-    [[ -n "$img" ]] && echo "$img" && return
+    local l_img="$(searchImageCurrentPath $sdcard/linuxonandroid $systembase $systemsubbase)"
+    [[ -n "$l_img" ]] && img="$l_img" && return
+    local l_img="$(searchImageCurrentPath $sdcard/linuxonandroid $systemsubbase $systemsubbase)"
+    [[ -n "$l_img" ]] && img="$l_img" && return
   fi
 
   if [ -d "$intern/linuxonandroid" ]; then
-    local img="$(searchImageCurrentPath $intern/linuxonandroid $systembase $systemsubbase)"
-    [[ -n "$img" ]] && echo "$img" && return
-    local img="$(searchImageCurrentPath $intern/linuxonandroid $systemsubbase $systemsubbase)"
-    [[ -n "$img" ]] && echo "$img" && return
+    local l_img="$(searchImageCurrentPath $intern/linuxonandroid $systembase $systemsubbase)"
+    [[ -n "$l_img" ]] && img="$l_img" && return
+    local l_img="$(searchImageCurrentPath $intern/linuxonandroid $systemsubbase $systemsubbase)"
+    [[ -n "$l_img" ]] && img="$l_img" && return
   fi
 
 
