@@ -1,0 +1,48 @@
+
+if [ "$1" == "-h" ] || [ "$1" == "help" ] || [ "$1" == "" ] || [ "$2" == "" ] || [ "$3" == "" ];then
+  echo "Create a new imagefile"
+  echo "mkdisk imagename path size [loopno]"
+  exit 1
+fi
+
+img=$1.img
+target=$2
+size=$3
+
+if [ "$4" == "" ]; then
+  for i in $(seq 250 -1 0); do
+    if [ ! -e "/dev/block/loop$i" ]; then
+      loopno=$i
+      break
+    fi
+  done
+else
+  if [ ! -e /dev/block/loop$4 ]; then
+    loopno="$4"
+  fi
+fi
+
+if [ "$loopno" == "" ]; then
+  echo "No free loop-devices"
+  exit
+fi
+
+loop=/dev/block/loop$loopno
+
+dd if=/dev/zero of=$img bs=1MB count=0 seek=$size
+mke2fs -F $img
+
+if [ -r $loop ]; then
+  if mount | grep -q "$loop"; then
+    echo "loop-number currently mounted"
+    exit -2;
+  fi
+  echo "Remove old loop-device"
+  losetup -d $loop
+  rm $loop
+fi
+#create loop device
+mknod $loop b 7 $loopno
+losetup $loop $img
+mkdir -p $target
+mount -t ext2 $loop $target

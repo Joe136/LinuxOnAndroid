@@ -1,0 +1,39 @@
+
+if [ "$1" == "-h" ] || [ "$1" == "help" ] || [ "$1" == "" ] || [ "$2" == "" ]; then
+  echo "Mount an existing imagefile"
+  echo "mountdisk imagefile path [loopno]"
+  exit 1
+fi
+
+img="$1"
+target="$2"
+
+if [ "$3" == "" ]; then
+  for i in $(seq 250 -1 0); do
+    if [ ! -e "/dev/block/loop$i" ]; then
+      loopno=$i
+      break
+    fi
+  done
+else
+  if [ ! -e /dev/block/loop$3 ]; then
+    loopno="$3"
+  fi
+fi
+
+loop="/dev/block/loop$loopno"
+
+if [ -r "$loop" ]; then
+  if mount | grep -q "$loop"; then
+    echo "loop-number currently mounted"
+    exit -2;
+  fi
+  echo "Remove old loop-device"
+  losetup -d "$loop"
+  rm "$loop"
+fi
+#create loop device
+mknod "$loop" b 7 "$loopno"
+losetup "$loop" "$img"
+mkdir -p "$target"
+mount -t ext2 "$loop" "$target"

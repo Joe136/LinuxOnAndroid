@@ -1,0 +1,275 @@
+#!/system/bin/sh
+#sdcard=$(readlink -f /sdcard)
+system=$(basename $0)
+sdcard=/mnt/sdcard
+kit=$sdcard/$system
+img=$kit/$system.img
+mnt=/data/local/$system
+
+export xbin=/system/xbin
+export PATH=$xbin:/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:$PATH
+export TERM=xterm-color
+export HOME=/root
+
+#Froyo's apps-to-SD makes use of special loopback devices /dev/block/dm-#
+#Each program installed to SD uses up a normal loopback device.
+#We therefore have to make our own with a minor number that we hope
+#users will never reach.
+#Our mount will break if there are $loopno apps installed to SD
+loopno=254
+
+if [ "$1" != "install" ]; then
+  if [ -e /data/local/linuxonandroid/config.default ]; then
+    . /data/local/linuxonandroid/config.default
+  fi
+  if [ -e /data/local/linuxonandroid/config.$system ]; then
+    . /data/local/linuxonandroid/config.$system
+  fi
+fi
+
+loop=/dev/block/loop$loopno
+
+case "$1" in
+mount)
+  if [ ! -e /data/local/linuxonandroid/config.$system ]; then
+    $0 install $system
+    . /data/local/linuxonandroid/config.$system
+  fi
+
+  if mount | grep -q " $mnt "; then
+    echo "$img already mounted"
+    if [ "$2" = "android" ] && $(mount | ! grep -q " $mnt/mnt/data "); then
+      echo "Mounting: System Parts ..."
+      mount -o bind /data $mnt/mnt/data
+      mount -o bind /system $mnt/mnt/system
+      #if [ -d "/sbin" ]; then
+      #  mount -o bind /sbin $mnt/mnt/sbin
+      #fi
+    fi
+    exit 2
+  fi
+  echo "Mounting: Prepwork ..."
+  #some ROMS mount the sdcard nodev
+  mount -o dev,remount $sdcard
+  #some also don't load filesystem drivers on boot
+  grep -q ext2 /proc/filesystems || modprobe ext2
+
+  echo "Mounting: Loopback mount ..."
+  if [ ! -d $mnt ]; then
+    mkdir $mnt
+  fi
+  if [ -e $loop ]; then
+    echo "Remove Loopback Device"
+    losetup -d $loop
+    rm $loop
+  fi
+  #create loop device
+  mknod $loop b 7 $loopno
+  losetup $loop $img
+  #mount -t ext2 -o relatime $loop $mnt
+  mount -t ext2 $loop $mnt
+
+  touch $img
+
+  echo "Mounting: Setting up chroot environment ..."
+  mount -o bind /dev $mnt/dev
+  mount -t devpts devpts $mnt/dev/pts
+  mount -o bind /proc $mnt/proc
+  mount -o bind /sys $mnt/sys
+
+  #make the SD card accessible to the chroot environment
+  if [ ! -d $mnt/mnt/sdcard ]; then
+    mkdir $mnt/mnt/sdcard
+  fi
+  #mount -o bind $sdcard $mnt/media/sdcard
+  mountpoint=$(df -P | awk '$6=="'$sdcard'" {print $1}')
+  mount -t vfat -o rw,dirsync,suid,exec,relatime $mountpoint $mnt/mnt/sdcard
+
+  if [ "$2" = "android" ]; then
+    echo "Mounting: System Parts ..."
+    mount -o bind /data $mnt/mnt/data
+    mount -o bind /system $mnt/mnt/system
+    #if [ -d "/sbin" ]; then
+    #  mount -o bind /sbin $mnt/mnt/sbin
+    #fi
+  fi
+
+  echo "	[ Done ]"
+
+;;
+umount|unmount)
+  echo "Kill running processes"
+  fuser -km $mnt
+  echo "Unmounting ..."
+  #awk '{print $2}' /proc/mounts | grep "^$mnt" | sort -r | xargs umount
+  cut -sd' ' -f2 /proc/mounts | grep "^$mnt" | sort -r | xargs umount
+  #umount $mnt/mnt/sdcard
+  #umount $mnt/sys
+  #umount $mnt/proc
+  #umount $mnt/dev/pts
+  #umount $mnt/dev
+  #umount $mnt
+
+  if [ -e $loop ]; then
+    echo "Unmounting: Loopback mount ..."
+    losetup -d $loop
+    rm $loop
+  fi
+
+;;
+mountsd)
+  if mount | ! grep -q " $mnt "; then
+    echo "$img not mounted"
+    exit 3
+  fi
+
+  if mount | grep -q " $mnt/mnt/sdcard "; then
+    echo "$mnt/mnt/sdcard already mounted"
+    exit 4
+  fi
+
+  #make the SD card accessible to the chroot environment
+  if [ ! -d $mnt/mnt/sdcard ]; then
+    mkdir $mnt/mnt/sdcard
+  fi
+
+  #mount -o bind $sdcard $mnt/media/sdcard
+  mountpoint=$(df -P | awk '$6=="'$sdcard'" {print $1}')
+  mount -t vfat -o rw,dirsync,suid,exec,relatime $mountpoint $mnt/mnt/sdcard
+
+;;
+umountsd|unmountsd)
+  echo "Kill running processes"
+  fuser -km $mnt/mnt/sdcard
+  echo "Unmounting ..."
+  umount -f $mnt/mnt/sdcard
+
+;;
+mountimg)
+  beg=250
+  unset IFS
+  if [ -e /data/local/linuxonandroid/mount.default ]; then
+    for line in $(cat /data/local/linuxonandroid/mount.default); do
+      IFS=":"
+      image=$mnt$(echo $line | awk '{ print $1 }')
+      target=$mnt$(echo $line | awk '{ print $2 }')
+      unset IFS
+
+      if [ "$image" != "" ] && [ "$target" != "" ]; then
+        if ! mount | grep -q "$target "; then
+        if [ ! -e "$image" ]; then continue; fi
+          for i in $(seq $beg -1 0); do
+            if [ ! -e "/dev/block/loop$i" ]; then
+              loopno=$i
+              beg=$((i-1))
+              break
+            fi
+          done
+          loop=/dev/block/loop$loopno
+          #create loop device
+          mknod $loop b 7 $loopno
+          losetup $loop $image
+          mkdir -p $target
+          mount -t ext2 $loop $target
+        fi
+      fi
+    done
+  fi
+
+  if [ -e /data/local/linuxonandroid/mount.$system ]; then
+    for line in $(cat /data/local/linuxonandroid/mount.$system); do
+      IFS=":"
+      image=$mnt$(echo $line | awk '{ print $1 }')
+      target=$mnt$(echo $line | awk '{ print $2 }')
+      unset IFS
+
+      if [ "$image" != "" ] && [ "$target" != "" ]; then
+        if ! mount | grep -q "$target "; then
+        if [ ! -e "$image" ]; then continue; fi
+          for i in $(seq $beg -1 0); do
+            if [ ! -e "/dev/block/loop$i" ]; then
+              loopno=$i
+              beg=$((i-1))
+              break
+            fi
+          done
+          loop=/dev/block/loop$loopno
+          #create loop device
+          mknod $loop b 7 $loopno
+          losetup $loop $image
+          mkdir -p $target
+          mount -t ext2 $loop $target
+        fi
+      fi
+    done
+  fi
+
+;;
+umountimg|unmountimg)
+#  echo "Kill running processes"
+#  fuser -km $mnt/mnt/sdcard
+#  echo "Unmounting ..."
+#  umount -f $mnt/mnt/sdcard
+
+;;
+chroot|"")
+  $0 mount
+  chroot $mnt /bin/bash
+
+;;
+ssh)
+  $0 mount
+  chroot $mnt /root/scripts/ssh.sh $2
+
+;;
+vnc)
+  $0 mount
+  chroot $mnt /root/scripts/vnc.sh $2 $3
+
+;;
+install)
+  if [ "$2" != "" ]; then
+    system=$2
+  fi
+  if [ ! -e /data/local/linuxonandroid/config.$system ] || [ "$3" = "force" ]; then
+    echo "Creating config files ..."
+    mkdir -p /data/local/linuxonandroid
+    echo "kit=$sdcard/$system" >> /data/local/linuxonandroid/config.$system
+    echo "img=$kit/$system.img" >> /data/local/linuxonandroid/config.$system
+    echo "mnt=/data/local/$system" >> /data/local/linuxonandroid/config.$system
+    echo "export TERM=$TERM" >> /data/local/linuxonandroid/config.$system
+    echo "loopno=254" >> /data/local/linuxonandroid/config.$system
+  fi
+
+;;
+passwd)
+  $0 mount
+  chroot $mnt /usr/bin/passwd $2
+
+;;
+hardinstall)
+
+;;
+help)
+  case "$2" in
+    "")
+    
+    ;;
+    mount)
+      echo "Mount the Image and system-parts."
+    ;;
+    mount)
+      echo "Make the SD card accessible to the chroot environment."
+    ;;
+    *)
+      echo "Command unknown"
+    ;;
+  esac
+
+;;
+*)
+  echo "Usage: $(basename $0) [help|[u[n]]mount[sd|img]|chroot|ssh|vnc|install|passwd|hardinstall]"
+  exit 1
+
+;;
+esac
