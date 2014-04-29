@@ -1,0 +1,3 @@
+
+#start-stop-daemon --start --background --quiet --make-pidfile --pidfile /run/wallpaper-changer.pid --exec /system/xbin/wallpaper-changer --oknodo -- --time 30s --directory /mnt/sdcard/zedge/wallpapers/
+start-stop-daemon --start --background --quiet --oknodo --exec /system/xbin/wallpaper-changer -- --time 8h --directory /mnt/sdcard/zedge/wallpapers/

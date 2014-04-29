@@ -119,7 +119,7 @@ function function_initialize()
    #if [ "$arg_path_abs" == "true" ]; then
    #   export PATH="$arg_path_abs"
    #else
-   export PATH="$bin:/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:$PATH"
+   export PATH="$bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$PATH"
    if [ ! -z "arg_path_pre" ]; then
       export PATH="$arg_path_pre:$PATH"
    fi
@@ -458,10 +458,6 @@ function function_info()
 
       exit 0
    fi
-
-   echo "point2: " $system
-   echo "point end"
-   exit
 } #end Fct
 
 

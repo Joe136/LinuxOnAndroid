@@ -493,15 +493,13 @@ function function_mount()
     return
   fi
 
-  echo "Mounting: Prepwork ..."
+  echo "Mounting: Prepare ..."
   #some ROMS mount the sdcard nodev
   mount -o dev,remount "$sdcard"
   #some also don't load filesystem drivers on boot
   grep -q ext2 /proc/filesystems || modprobe ext2
 
-  if [ ! -z "$imgoptions" ]; then
-    imgoptions="-o $imgoptions"
-  fi
+  [[ -n "$imgoptions" ]] && imgoptions="-o $imgoptions"
 
   if [ "$native" == "true" ]; then
     echo "Mounting: Native mount ..."
@@ -524,8 +522,9 @@ function function_mount()
     #create loop device
     mknod "$loop" b 7 "$loopno"
     losetup "$loop" "$img"
-    mount -t "$imgtype" $imgoptions "$loop" "$mnt"
-    touch "$img"
+    #mount -t "$imgtype" $imgoptions "$loop" "$mnt"
+    mount -t "$imgtype" "$loop" "$mnt"
+    #touch "$img"
   fi
 
   if ! mountpoint -q "$mnt"; then
