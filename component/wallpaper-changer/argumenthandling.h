@@ -17,6 +17,11 @@
 
 
 
+//---------------------------Defines-----------------------------------------------//
+void nopSignal (int sigNr) {}
+
+
+
 //---------------------------Struct DirectoryEntity--------------------------------//
 struct DirectoryEntity {
    char const             *name;
@@ -76,9 +81,9 @@ bool checkArguments (struct Arguments *args, int argc, const char *argv[], const
          args->logfile = argv[i];
 
       }
-      else if ( (!strncmp (argv[i], "--next",7) ) ) {
-
+      else if ( (!strncmp (argv[i], "--next", 7) ) ) {
          struct stat stat_dir;
+         signal (SIGALRM, nopSignal);
 
          if (!stat ("/system/bin/mksh", &stat_dir) ) {
             // If Android
@@ -96,11 +101,10 @@ bool checkArguments (struct Arguments *args, int argc, const char *argv[], const
             system ("killall -14 wallpaper-changer");
 
          args->breakup = true;
-
          return true;
 
       }
-      else if ( (!strncmp (argv[i], "--quiet",8) ) ) {
+      else if ( (!strncmp (argv[i], "--quiet", 8) ) ) {
          args->verbose = 0;
 
       }
@@ -109,6 +113,29 @@ bool checkArguments (struct Arguments *args, int argc, const char *argv[], const
          int n = atoi (argv[i]);
          if (n > 0)
             args->reloadmult = n;
+
+      }
+      else if ( (!strncmp (argv[i], "--status", 9) ) ) {
+         struct stat stat_dir;
+         signal (SIGUSR2, nopSignal);
+
+         if (!stat ("/system/bin/mksh", &stat_dir) ) {
+            // If Android
+            char *argv2[] = {"/system/bin/mksh", "-c", "killall -12 wallpaper-changer", NULL};
+            int pid;
+
+            if (!(pid = fork() ) ) {
+               execvp ("/system/bin/mksh", argv2);
+               exit (1);
+            } else {
+               waitpid (pid, NULL, 0);
+            }
+         } else
+            // If Linux
+            system ("killall -12 wallpaper-changer");
+
+         args->breakup = true;
+         return true;
 
       }
       else if ( (i + 1 < argc) && (!strncmp (argv[i], "--time", 7) ) ) {
@@ -137,7 +164,7 @@ bool checkArguments (struct Arguments *args, int argc, const char *argv[], const
             args->time = atoi (temp1) * 60 * 60 * 24 * 7;
          } else if (argv[i][len] == 'M') {
             args->time = atoi (temp1) * 60 * 60 * 24 * 31;
-         } else if (argv[i][len] == 'J') {
+         } else if (argv[i][len] == 'Y') {
             args->time = atoi (temp1) * 60 * 60 * 24 * 365;
          } else {
             fprintf (stderr, "error: wrong time format. Possible formats are <time>s|m|h|D|W|M|J\n");
@@ -154,6 +181,31 @@ bool checkArguments (struct Arguments *args, int argc, const char *argv[], const
          int n = atoi (argv[i]);
          if (n > 7200) n = 7200;
          sleep (n);
+
+      }
+      else if ( (!strncmp (argv[i], "-h", 3) ) || (!strncmp (argv[i], "--help", 7) ) ) {
+         printf ("wallpaper-changer " VERSION "\n");
+         printf ("Native Wallpaper Changer Service for Android (Devices)\n");
+         printf ("\n");
+         printf ("Usage: wallpaper-changer <options>\n");
+         printf ("Options:\n");
+         printf ("  -h | --help                Print this help\n");
+         printf ("  --directory <directory>    Add directory to watched directories (starts the daemon mode)\n");
+         printf ("  --log <logfile>            Set log file (only one file)\n");
+         printf ("  --next                     Change the wallpaper now (needs running daemon)\n");
+         printf ("  --quiet                    Disables logging (except errors)\n");
+         printf ("  --reload <multiplicator>   Times of WP changes until reloading the directories\n");
+         printf ("  --status                   Let the daemon print some infos\n");
+         printf ("  --time <time>s|m|h|D|W|M|Y Time between WP changes (default: 2 days)\n");
+         printf ("  --verbose                  Increases log level\n");
+         printf ("  --waitfirst <seconds>      Wait some time before starting (e.g. if directory is not mounted)\n");
+         printf ("\n");
+         printf ("Examples:\n");
+         printf ("Change WP every 6 hours: wallpaper-changer --time 6h --directory /mnt/sdcard/wallpaper --directory /mnt/sd...\n");
+         printf ("Change WP now:           wallpaper-changer --next\n");
+
+         args->breakup = true;
+         return true;
 
       }
 

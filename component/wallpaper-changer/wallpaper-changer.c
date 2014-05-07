@@ -128,9 +128,11 @@ int main (int argc, const char *argv[], const char *envp[]) {
 
    while (g_bRepeat) {
       if (gosleep) {
+         //int temp1 = m_oArguments.time - difftime (time (NULL), begtime);
          //sleep (m_oArguments.time);
          //sleep ( (m_oArguments.time > 300)?300:m_oArguments.time);   //TODO calculate sleep value in more intelligent way
          sleep ( (m_oArguments.time > 300)?300:(m_oArguments.time-difftime(time(NULL),begtime)) );   //TODO calculate sleep value in more intelligent way
+         //sleep ( (temp1 > 300)?300:temp1);   //TODO calculate sleep value in more intelligent way
 
          if (m_oArguments.verbose >= 3) { logMsg ("waked up"); logFlush (); }
       }

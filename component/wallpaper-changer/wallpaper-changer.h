@@ -5,7 +5,7 @@
 #define WALLPAPER_CHANGER_H
 
 //---------------------------Defines-----------------------------------------------//
-#define VERSION "0.0.1"
+#define VERSION "0.1.0"
 #define bool int
 #define true 1
 #define false 0
