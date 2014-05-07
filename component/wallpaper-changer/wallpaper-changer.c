@@ -18,11 +18,14 @@
 
 
 //---------------------------Global Variables--------------------------------------//
-static bool g_bRepeat = true;
-static bool g_bReload = false;
-static bool g_bNext   = false;
+static bool  g_bRepeat = true;
+static bool  g_bReload = false;
+static bool  g_bNext   = false;
+static bool  g_bStatus = false;
+static FILE *g_oLog    = NULL;
 
 #include "signalhandling.h"
+#include "loghandling.h"
 
 
 
@@ -35,14 +38,12 @@ int main (int argc, const char *argv[], const char *envp[]) {
 
    /*------------------------Read Arguments----------------------------------------*/
    struct Arguments m_oArguments;
+   memset (&m_oArguments, 0, sizeof (struct Arguments) );
 
-   m_oArguments.directory  = NULL;
-   m_oArguments.time       = 0;
    m_oArguments.likelihood = 1;
    m_oArguments.verbose    = 1;
-   m_oArguments.logfile    = NULL;
-   m_oArguments.breakup    = false;
    m_oArguments.updatetime = 172800;   // two days
+   m_oArguments.reloadmult = 5;
 
    if (!checkArguments (&m_oArguments, argc, argv, envp) ) {
       return 1;
@@ -51,18 +52,16 @@ int main (int argc, const char *argv[], const char *envp[]) {
    if (m_oArguments.breakup)
       return 0;
 
-   FILE *log = NULL;
    if (m_oArguments.logfile)
-      log = fopen (m_oArguments.logfile, "w");   //TODO check input first
+      g_oLog = fopen (m_oArguments.logfile, "w");   //TODO check input first
 
    if (!m_oArguments.directory) {
-      fprintf (stderr, "error: no directories defined\n");
-      if (log) fprintf (log, "error: no directories defined\n");
+      errMsg ("no directories defined");
       return 2;
    }
 
 /*   if (m_oArguments.time < 20) {
-      fprintf (stderr, "warning: changing time to 20s (minimum)\n");
+      wrnMsg ("changing time to 20s (minimum)");
       m_oArguments.time = 20;
    }
 */
@@ -73,8 +72,8 @@ int main (int argc, const char *argv[], const char *envp[]) {
    if (m_oArguments.verbose >= 2) {
       printf ("directories: "); for (directory = m_oArguments.directory; directory != NULL; directory = directory->next) printf ("%s,", directory->name);
       printf ("\ntime: %u\n", m_oArguments.time);
-      if (log) { fprintf (log, "verbose: directories: "); for (directory = m_oArguments.directory; directory != NULL; directory = directory->next) fprintf (log, "%s,", directory->name); }
-      if (log) fprintf (log, "\nverbose: time: %u\n", m_oArguments.time);
+      if (g_oLog) { fprintf (g_oLog, "wallpaper-changer: verbose: directories: "); for (directory = m_oArguments.directory; directory != NULL; directory = directory->next) fprintf (g_oLog, "%s,", directory->name); }
+      if (g_oLog) fprintf (g_oLog, "\nwallpaper-changer: verbose: time: %u\n", m_oArguments.time);
    }
 
 
@@ -98,13 +97,12 @@ int main (int argc, const char *argv[], const char *envp[]) {
 
       printf ("found images: %i\n", maxImages);
       printf ("accepted images: %i\n", sumImages);
-      if (log) fprintf (log, "verbose: found images: %i\n", maxImages);
-      if (log) fprintf (log, "verbose: accepted images: %i\n", sumImages);
+      if (g_oLog) fprintf (g_oLog, "wallpaper-changer: verbose: found images: %i\n", maxImages);
+      if (g_oLog) fprintf (g_oLog, "wallpaper-changer: verbose: accepted images: %i\n", sumImages);
    }
 
    if (sumImages <= 1) {
-      fprintf (stderr, "error: not enough images to rotate (< 2)\n");
-      if (log) fprintf (log, "error: not enough images to rotate (< 2)\n");
+      errMsg ("not enough images to rotate (< 2)");
       return 3;
    }
 
@@ -125,81 +123,23 @@ int main (int argc, const char *argv[], const char *envp[]) {
    char *argv2[]    = {"/system/bin/mksh", "-c", NULL, NULL};
 
    srand (time(NULL) );
-   if (log) fflush (log);
+   logFlush ();
 
-/*
-   struct rtc_time rtctime; memset (&rtctime, 0, sizeof (struct rtc_time) );
-   //rtctime.tm_sec = 15;
-   struct rtc_wkalrm rtcalarm; memset (&rtcalarm, 0, sizeof (struct rtc_wkalrm) );
-   rtcalarm.enabled = 1;
-   unsigned long irqp = 1;
-   int ret;
-   struct timespec andtime;
-
-   int rtcfd = open ("/dev/rtc0", O_RDONLY);
-   int andcfd = open ("/dev/alarm", O_RDONLY);
-
-   ret = ioctl (andfd, ANDROID_ALARM_GET_TIME, &andtime);
-
-   printf ("point3: %i %i\n", rtcfd, ret);
-
-   ret       = ioctl (rtcfd, RTC_RD_TIME, &rtctime);
-
-   printf ("point1: %i %i, %4i-%02i-%02i %02i:%02i:%02i\n", rtcfd, ret, 1900 + rtctime.tm_year, rtctime.tm_mon, rtctime.tm_mday, rtctime.tm_hour, rtctime.tm_min, rtctime.tm_sec);
-
-   rtctime.tm_sec += 20;
-   if (rtctime.tm_sec >= 60) {
-      rtctime.tm_sec %= 60;
-      rtctime.tm_min++;
-   }
-   if (rtctime.tm_min == 60) {
-      rtctime.tm_min = 0;
-      rtctime.tm_hour++;
-   }
-   if (rtctime.tm_hour == 24)
-      rtctime.tm_hour = 0;
-
-   rtcalarm.time = rtctime;
-
-   //ret       = ioctl (rtcfd, RTC_AIE_ON, &irqp);
-   ret       = ioctl (rtcfd, RTC_WKALM_SET, &rtcalarm);
-
-   printf ("point2: %i %i, %4i-%02i-%02i %02i:%02i:%02i\n", rtcfd, ret, 1900 + rtctime.tm_year, rtctime.tm_mon, rtctime.tm_mday, rtctime.tm_hour, rtctime.tm_min, rtctime.tm_sec);
-   //printf ("point1: %i %i, %hhu %hhu \n", rtcfd, ret, rtcalarm.enabled, rtcalarm.pending);
-   //printf ("point1: %i %i, %lu\n", rtcfd, ret, irqp);
-
-   //ret       = ioctl (rtcfd, RTC_AIE_ON, 0);
-
-   //printf ("point3: %i %i\n", rtcfd, ret);
-
-   ret       = ioctl (rtcfd, RTC_WKALM_RD, &rtcalarm);
-
-   rtctime = rtcalarm.time;
-
-   printf ("point4: %i %i, %4i-%02i-%02i %02i:%02i:%02i\n", rtcfd, ret, 1900 + rtctime.tm_year, rtctime.tm_mon, rtctime.tm_mday, rtctime.tm_hour, rtctime.tm_min, rtctime.tm_sec);
-
-   ret       = read (rtcfd, &irqp, sizeof(unsigned long) );
-
-   printf ("point5: %i %i, %lu\n", rtcfd, ret, irqp);
-*/
 
    while (g_bRepeat) {
       if (gosleep) {
          //sleep (m_oArguments.time);
-         sleep ( (m_oArguments.time > 300)?300:m_oArguments.time);   //TODO calculate sleep value in more intelligent way
+         //sleep ( (m_oArguments.time > 300)?300:m_oArguments.time);   //TODO calculate sleep value in more intelligent way
+         sleep ( (m_oArguments.time > 300)?300:(m_oArguments.time-difftime(time(NULL),begtime)) );   //TODO calculate sleep value in more intelligent way
 
-         //if (m_oArguments.verbose >= 2) { printf ("log: waked up\n"); fflush (stdout); }
-         if (log && m_oArguments.verbose >= 2) { fprintf (log, "log: waked up\n"); fflush (log); }
+         if (m_oArguments.verbose >= 3) { logMsg ("waked up"); logFlush (); }
       }
 
       if (!g_bRepeat)
          break;
 
       if (g_bReload) {
-         if (m_oArguments.verbose >= 2) {
-            printf ("reload directories\n");
-            if (log) fprintf (log, "log: reload directories\n");
-         }
+         if (m_oArguments.verbose >= 2) logMsg ("reload directories");
 
          free (randomVector); randomVector = NULL;
 
@@ -212,8 +152,7 @@ int main (int argc, const char *argv[], const char *envp[]) {
          countAcceptedImages (&sumImages, vector);
 
          if (sumImages <= 1) {
-            fprintf (stderr, "error: not enough images to rotate (< 2)\n");
-            if (log) fprintf (log, "error: not enough images to rotate (< 2)\n");
+            errMsg ("not enough images to rotate (< 2)");
             return 4;
          }
 
@@ -223,6 +162,12 @@ int main (int argc, const char *argv[], const char *envp[]) {
          g_bReload   = false;
          gosleep     = true;
          continue;
+      }
+
+      if (g_bStatus) {
+         logStatus ();
+         logFlush ();
+         g_bStatus = false;
       }
 
       if (!g_bNext && (difftime (time (NULL), begtime) < m_oArguments.time) ) {
@@ -270,31 +215,29 @@ int main (int argc, const char *argv[], const char *envp[]) {
       int pid;
 
       if (!(pid = fork() ) ) {
-         if (log) { dup2 (fileno(log), fileno(stdout) ); dup2 (fileno(log), fileno(stderr) ); fclose (log); }
+         if (g_oLog) { dup2 (fileno(g_oLog), fileno(stderr) ); /*dup2 (fileno(g_oLog), fileno(stdout) );*/ fclose (g_oLog); }
          execvp ("/system/bin/mksh", argv2);
          exit (1);
       }
 
 
       waitpid (pid, NULL, 0);
-      
+
       time_t curr = time (NULL);
-      if (begtime + m_oArguments.time < curr)
+      if (begtime + m_oArguments.time <= curr)
          while ( (begtime += m_oArguments.time) < curr) ;
 
       if (m_oArguments.verbose >= 2) {
          printf ("set wallpaper: %s\n", current->vector->temp1);
-         if (log) fprintf (log, "log: set wallpaper: %s\n", current->vector->temp1);
+         if (g_oLog) fprintf (g_oLog, "wallpaper-changer: log: set wallpaper: %s\n", current->vector->temp1);
       }
 
-      if (++reloadcount >= 5) {   //TODO make this more dynamic
+      if (++reloadcount >= m_oArguments.reloadmult) {   //TODO make this more dynamic
          g_bReload = true;
          gosleep   = false;
       }
 
-      //printf ("working %lli %i %lli \n", oldLikelihood, RAND_MAX, random);
-      fflush(stdout);
-      if (log) fflush(log);
+      logFlush ();
    }//end while
 
 
@@ -304,7 +247,7 @@ int main (int argc, const char *argv[], const char *envp[]) {
       cleanupImageVector (&vectorLast->vector);
    }//end for
 
-   if (log) fclose (log);
+   if (g_oLog) fclose (g_oLog);
 
    return 0;
 }//end Main

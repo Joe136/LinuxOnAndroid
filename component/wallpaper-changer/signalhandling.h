@@ -9,24 +9,37 @@
 
 
 
+//---------------------------Start execSignal--------------------------------------//
+void execSignal (const char *msg, bool *var, bool val) {
+   printf ("\n%s\n", msg); fflush (stdout);
+   *var = val;
+}//end Fct
+
+
+
 //---------------------------Start catchSignal-------------------------------------//
 void catchSignal (int sigNr) {
    switch (sigNr) {
+   case SIGHUP:
+      execSignal ("catched signal SIGHUP", &g_bRepeat, false);
+      break;
    case SIGINT:
-      printf ("\ncatched signal SIGINT\n"); fflush (stdout);
-      g_bRepeat = false;
+      execSignal ("catched signal SIGINT", &g_bRepeat, false);
+      break;
+   case SIGQUIT:
+      execSignal ("catched signal SIGQUIT", &g_bRepeat, false);
       break;
    case SIGUSR1:
-      printf ("\ncatched signal SIGUSR1\n"); fflush (stdout);
-      g_bReload = true;
+      execSignal ("catched signal SIGUSR1", &g_bReload, true);
+      break;
+   case SIGUSR2:
+      execSignal ("catched signal SIGUSR2", &g_bStatus, true);
       break;
    case SIGALRM:
-      printf ("\ncatched signal SIGALRM\n"); fflush (stdout);
-      g_bNext = true;
+      execSignal ("catched signal SIGALRM", &g_bNext, true);
       break;
    case SIGTERM:
-      printf ("\ncatched signal SIGTERM\n"); fflush (stdout);
-      g_bRepeat = false;
+      execSignal ("catched signal SIGTERM", &g_bRepeat, false);
       break;
    default:
       printf ("\ncatched signal %i\n", sigNr); fflush (stdout);
@@ -38,8 +51,11 @@ void catchSignal (int sigNr) {
 //---------------------------Start registerSignals---------------------------------//
 void registerSignals () {
 
+   signal (SIGHUP , catchSignal);
    signal (SIGINT , catchSignal);
+   signal (SIGQUIT, catchSignal);
    signal (SIGUSR1, catchSignal);
+   signal (SIGUSR2, catchSignal);
    signal (SIGALRM, catchSignal);
    signal (SIGTERM, catchSignal);
 

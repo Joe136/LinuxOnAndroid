@@ -33,6 +33,7 @@ struct Arguments {
    int                     verbose;
    char const             *logfile;
    int                     updatetime;
+   int                     reloadmult;
    bool                    breakup;
 };//end struct
 
@@ -48,12 +49,31 @@ bool checkArguments (struct Arguments *args, int argc, const char *argv[], const
 
    for (i = 1; i < argc; ++i) {
 
-      if ( (!strncmp (argv[i], "--verbose", 10) ) ) {
-         args->verbose = 2;
+      if ( (i + 1 < argc) && (!strncmp (argv[i], "--directory", 12) ) ) {
+         ++i;
+         struct DirectoryEntity *directory;
+         struct stat stat_dir;
+
+         // Check if argument is a directory
+         if (stat (argv[i], &stat_dir) || (unsigned char)( (stat_dir.st_mode >> 12) & 0x7) != 4 ) {
+            fprintf (stderr, "warning: directory defined in argument %i doesn't exist\n", i);
+            continue;
+         }
+
+         if (!args->directory) {
+            directory = args->directory = (struct DirectoryEntity*) malloc (sizeof (struct DirectoryEntity) );
+         } else {
+            for (directory = args->directory; directory->next != NULL; directory = directory->next) ;
+            directory = directory->next = (struct DirectoryEntity*) malloc (sizeof (struct DirectoryEntity) );
+         }
+
+         directory->name = argv[i];
+         directory->next = NULL;
 
       }
-      else if ( (!strncmp (argv[i], "--quiet",8) ) ) {
-         args->verbose = 0;
+      else if ( (i + 1 < argc) && (!strncmp (argv[i], "--log", 6) ) ) {
+         ++i;
+         args->logfile = argv[i];
 
       }
       else if ( (!strncmp (argv[i], "--next",7) ) ) {
@@ -80,38 +100,15 @@ bool checkArguments (struct Arguments *args, int argc, const char *argv[], const
          return true;
 
       }
-      else if ( (i + 1 < argc) && (!strncmp (argv[i], "--waitfirst", 12) ) ) {
+      else if ( (!strncmp (argv[i], "--quiet",8) ) ) {
+         args->verbose = 0;
+
+      }
+      else if ( (i + 1 < argc) && (!strncmp (argv[i], "--reload", 12) ) ) {
          ++i;
          int n = atoi (argv[i]);
-         if (n > 7200) n = 7200;
-         sleep (n);
-
-      }
-      else if ( (i + 1 < argc) && (!strncmp (argv[i], "--out", 6) ) ) {
-         ++i;
-         args->logfile = argv[i];
-
-      }
-      else if ( (i + 1 < argc) && (!strncmp (argv[i], "--directory", 12) ) ) {
-         ++i;
-         struct DirectoryEntity *directory;
-         struct stat stat_dir;
-
-         // Check if argument is a directory
-         if (stat (argv[i], &stat_dir) || (unsigned char)( (stat_dir.st_mode >> 12) & 0x7) != 4 ) {
-            fprintf (stderr, "warning: directory defined in argument %i doesn't exist\n", i);
-            continue;
-         }
-
-         if (!args->directory) {
-            directory = args->directory = (struct DirectoryEntity*) malloc (sizeof (struct DirectoryEntity) );
-         } else {
-            for (directory = args->directory; directory->next != NULL; directory = directory->next) ;
-            directory = directory->next = (struct DirectoryEntity*) malloc (sizeof (struct DirectoryEntity) );
-         }
-
-         directory->name = argv[i];
-         directory->next = NULL;
+         if (n > 0)
+            args->reloadmult = n;
 
       }
       else if ( (i + 1 < argc) && (!strncmp (argv[i], "--time", 7) ) ) {
@@ -146,6 +143,17 @@ bool checkArguments (struct Arguments *args, int argc, const char *argv[], const
             fprintf (stderr, "error: wrong time format. Possible formats are <time>s|m|h|D|W|M|J\n");
             return false;
          }
+
+      }
+      else if ( (!strncmp (argv[i], "--verbose", 10) ) ) {
+         ++args->verbose;
+
+      }
+      else if ( (i + 1 < argc) && (!strncmp (argv[i], "--waitfirst", 12) ) ) {
+         ++i;
+         int n = atoi (argv[i]);
+         if (n > 7200) n = 7200;
+         sleep (n);
 
       }
 
