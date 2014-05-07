@@ -31,6 +31,7 @@ struct Arguments {
    size_t                  time;
    int                     likelihood;
    int                     verbose;
+   char const             *logfile;
    int                     updatetime;
    bool                    breakup;
 };//end struct
@@ -77,6 +78,18 @@ bool checkArguments (struct Arguments *args, int argc, const char *argv[], const
          args->breakup = true;
 
          return true;
+
+      }
+      else if ( (i + 1 < argc) && (!strncmp (argv[i], "--waitfirst", 12) ) ) {
+         ++i;
+         int n = atoi (argv[i]);
+         if (n > 7200) n = 7200;
+         sleep (n);
+
+      }
+      else if ( (i + 1 < argc) && (!strncmp (argv[i], "--out", 6) ) ) {
+         ++i;
+         args->logfile = argv[i];
 
       }
       else if ( (i + 1 < argc) && (!strncmp (argv[i], "--directory", 12) ) ) {

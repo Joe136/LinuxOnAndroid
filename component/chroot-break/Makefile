@@ -17,7 +17,7 @@ INSTALL         = /usr/bin/install
 INSTALL_PROGRAM = ${INSTALL}
 INSTALL_DATA    = ${INSTALL} -m 755
 
-OBJ         = chroot-break
+OBJ         = $(shell ls *.c 2> /dev/null | xargs basename -s .c)
 INST        = chroot-break
 
 %.la: %.c

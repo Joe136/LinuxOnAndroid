@@ -8,40 +8,21 @@
 #include<stdlib.h>
 #include<fcntl.h>
 #include<sys/wait.h>
+#include<sys/ioctl.h>
+#include<linux/rtc.h>
 #include "wallpaper-changer.h"
 #include "argumenthandling.h"
 #include "directoryhandling.h"
+#include "randomhandling.h"
 
 
 
 //---------------------------Global Variables--------------------------------------//
 static bool g_bRepeat = true;
 static bool g_bReload = false;
+static bool g_bNext   = false;
 
 #include "signalhandling.h"
-
-
-
-//---------------------------Struct ImageVectorEntity------------------------------//
-struct ImageVectorEntity {
-   char const               *directory;
-   struct ImageVector        vector;
-   char                      temp1[512];
-   size_t                    temp2;
-   //char                     *temp3;
-   //char                     *temp4;
-   struct ImageVectorEntity *next;
-};//end struct
-
-
-
-//---------------------------Struct ImageVectorEntity------------------------------//
-struct RandomListEntity {
-   struct ImageVectorEntity *vector;
-   int                       pos;
-   long long                 likelihood;
-   size_t                    counter;
-};//end struct
 
 
 
@@ -59,6 +40,7 @@ int main (int argc, const char *argv[], const char *envp[]) {
    m_oArguments.time       = 0;
    m_oArguments.likelihood = 1;
    m_oArguments.verbose    = 1;
+   m_oArguments.logfile    = NULL;
    m_oArguments.breakup    = false;
    m_oArguments.updatetime = 172800;   // two days
 
@@ -69,16 +51,21 @@ int main (int argc, const char *argv[], const char *envp[]) {
    if (m_oArguments.breakup)
       return 0;
 
+   FILE *log = NULL;
+   if (m_oArguments.logfile)
+      log = fopen (m_oArguments.logfile, "w");   //TODO check input first
+
    if (!m_oArguments.directory) {
       fprintf (stderr, "error: no directories defined\n");
+      if (log) fprintf (log, "error: no directories defined\n");
       return 2;
    }
 
-   if (m_oArguments.time < 20) {
+/*   if (m_oArguments.time < 20) {
       fprintf (stderr, "warning: changing time to 20s (minimum)\n");
       m_oArguments.time = 20;
    }
-
+*/
 
    /*------------------------Verbose Output----------------------------------------*/
    struct DirectoryEntity   *directory;
@@ -86,6 +73,8 @@ int main (int argc, const char *argv[], const char *envp[]) {
    if (m_oArguments.verbose >= 2) {
       printf ("directories: "); for (directory = m_oArguments.directory; directory != NULL; directory = directory->next) printf ("%s,", directory->name);
       printf ("\ntime: %u\n", m_oArguments.time);
+      if (log) { fprintf (log, "verbose: directories: "); for (directory = m_oArguments.directory; directory != NULL; directory = directory->next) fprintf (log, "%s,", directory->name); }
+      if (log) fprintf (log, "\nverbose: time: %u\n", m_oArguments.time);
    }
 
 
@@ -93,140 +82,183 @@ int main (int argc, const char *argv[], const char *envp[]) {
    struct ImageVectorEntity *vector     = NULL;
    struct ImageVectorEntity *vectorLast = NULL;
 
-   for (directory = m_oArguments.directory; directory != NULL; directory = directory->next) {
-      if (!vector)
-         vector = vectorLast = (struct ImageVectorEntity*) malloc (sizeof(struct ImageVectorEntity) );
-      else
-         vectorLast = vectorLast->next = (struct ImageVectorEntity*) malloc (sizeof(struct ImageVectorEntity) );
-
-      vectorLast->directory = directory->name;
-      vectorLast->temp2     = strnlen (directory->name, 512);
-      strncpy (vectorLast->temp1, directory->name, vectorLast->temp2);
-      vectorLast->temp1[vectorLast->temp2++] = '/';
-
-      parseDirectory (&vectorLast->vector, directory->name);
-   }//end for
-
+   readDirectories (&vector, m_oArguments.directory);
 
    /*------------------------Count accepted Images---------------------------------*/
    int sumImages = 0;
-   for (vectorLast = vector; vectorLast != NULL; vectorLast = vectorLast->next) {
-      if (!vectorLast->vector.vector)
-         continue;
+   countAcceptedImages (&sumImages, vector);
 
-      if (!vectorLast->vector.likelihood) {
-         sumImages += vectorLast->vector.length;
-      } else {
-         int n = 0;
-         for (; n < vectorLast->vector.length; ++n)
-            if (vectorLast->vector.likelihood[n] != 0)
-               ++sumImages;
-      }
-   }//end for
+   if (m_oArguments.verbose >= 2) {
+      int maxImages = 0;
+      for (vectorLast = vector; vectorLast != NULL; vectorLast = vectorLast->next) {
+         if (!vectorLast->vector.vector)
+            continue;
+         maxImages += vectorLast->vector.length;
+      }//end for
+
+      printf ("found images: %i\n", maxImages);
+      printf ("accepted images: %i\n", sumImages);
+      if (log) fprintf (log, "verbose: found images: %i\n", maxImages);
+      if (log) fprintf (log, "verbose: accepted images: %i\n", sumImages);
+   }
 
    if (sumImages <= 1) {
       fprintf (stderr, "error: not enough images to rotate (< 2)\n");
+      if (log) fprintf (log, "error: not enough images to rotate (< 2)\n");
       return 3;
    }
 
 
    /*------------------------Create Image Random List------------------------------*/
-   struct RandomListEntity *randomVector = (struct RandomListEntity*) malloc (sizeof (struct RandomListEntity) * sumImages);
-   int a = 0;
+   struct RandomListEntity *randomVector = NULL;
    long long oldLikelihood = 0;
-
-   for (vectorLast = vector; vectorLast != NULL; vectorLast = vectorLast->next) {
-      if (!vectorLast->vector.vector)
-         continue;
-
-      int n = 0;
-      if (!vectorLast->vector.likelihood) {
-         for (; n < vectorLast->vector.length; ++n) {
-            randomVector[a].vector     = vectorLast;
-            randomVector[a].pos        = n;
-            randomVector[a].counter    = 0;
-            randomVector[a].likelihood = (oldLikelihood += m_oArguments.likelihood);
-            ++a;
-         }//end for
-      } else {
-         for (; n < vectorLast->vector.length; ++n) {
-            if (vectorLast->vector.likelihood[n] == 0)
-               continue;
-
-            randomVector[a].vector     = vectorLast;
-            randomVector[a].pos        = n;
-            randomVector[a].counter    = 0;
-
-            if (vectorLast->vector.likelihood[n] == -1)
-               randomVector[a].likelihood = (oldLikelihood += m_oArguments.likelihood);
-            else if (vectorLast->vector.likelihood[n] > 0)
-               randomVector[a].likelihood = (oldLikelihood += vectorLast->vector.likelihood[n]);
-
-            ++a;
-         }//end for
-      }
-   }//end for
+   createRandomList (&randomVector, &oldLikelihood, vector, sumImages, m_oArguments.likelihood);
 
 
    /*------------------------Main Loop---------------------------------------------*/
-   bool twoRandom = false;
-   bool gosleep   = true;
+   bool gosleep     = true;
+   int reloadcount  = 0;
    long long random = 0;
+   time_t begtime   = time (NULL);
    char command[1024];
    struct RandomListEntity *current = &randomVector[0];
-   char *argv2[] = {"/system/bin/mksh", "-c", NULL, NULL};
-
-   if (oldLikelihood > RAND_MAX)
-      twoRandom = true;
+   char *argv2[]    = {"/system/bin/mksh", "-c", NULL, NULL};
 
    srand (time(NULL) );
+   if (log) fflush (log);
 
+/*
+   struct rtc_time rtctime; memset (&rtctime, 0, sizeof (struct rtc_time) );
+   //rtctime.tm_sec = 15;
+   struct rtc_wkalrm rtcalarm; memset (&rtcalarm, 0, sizeof (struct rtc_wkalrm) );
+   rtcalarm.enabled = 1;
+   unsigned long irqp = 1;
+   int ret;
+   struct timespec andtime;
+
+   int rtcfd = open ("/dev/rtc0", O_RDONLY);
+   int andcfd = open ("/dev/alarm", O_RDONLY);
+
+   ret = ioctl (andfd, ANDROID_ALARM_GET_TIME, &andtime);
+
+   printf ("point3: %i %i\n", rtcfd, ret);
+
+   ret       = ioctl (rtcfd, RTC_RD_TIME, &rtctime);
+
+   printf ("point1: %i %i, %4i-%02i-%02i %02i:%02i:%02i\n", rtcfd, ret, 1900 + rtctime.tm_year, rtctime.tm_mon, rtctime.tm_mday, rtctime.tm_hour, rtctime.tm_min, rtctime.tm_sec);
+
+   rtctime.tm_sec += 20;
+   if (rtctime.tm_sec >= 60) {
+      rtctime.tm_sec %= 60;
+      rtctime.tm_min++;
+   }
+   if (rtctime.tm_min == 60) {
+      rtctime.tm_min = 0;
+      rtctime.tm_hour++;
+   }
+   if (rtctime.tm_hour == 24)
+      rtctime.tm_hour = 0;
+
+   rtcalarm.time = rtctime;
+
+   //ret       = ioctl (rtcfd, RTC_AIE_ON, &irqp);
+   ret       = ioctl (rtcfd, RTC_WKALM_SET, &rtcalarm);
+
+   printf ("point2: %i %i, %4i-%02i-%02i %02i:%02i:%02i\n", rtcfd, ret, 1900 + rtctime.tm_year, rtctime.tm_mon, rtctime.tm_mday, rtctime.tm_hour, rtctime.tm_min, rtctime.tm_sec);
+   //printf ("point1: %i %i, %hhu %hhu \n", rtcfd, ret, rtcalarm.enabled, rtcalarm.pending);
+   //printf ("point1: %i %i, %lu\n", rtcfd, ret, irqp);
+
+   //ret       = ioctl (rtcfd, RTC_AIE_ON, 0);
+
+   //printf ("point3: %i %i\n", rtcfd, ret);
+
+   ret       = ioctl (rtcfd, RTC_WKALM_RD, &rtcalarm);
+
+   rtctime = rtcalarm.time;
+
+   printf ("point4: %i %i, %4i-%02i-%02i %02i:%02i:%02i\n", rtcfd, ret, 1900 + rtctime.tm_year, rtctime.tm_mon, rtctime.tm_mday, rtctime.tm_hour, rtctime.tm_min, rtctime.tm_sec);
+
+   ret       = read (rtcfd, &irqp, sizeof(unsigned long) );
+
+   printf ("point5: %i %i, %lu\n", rtcfd, ret, irqp);
+*/
 
    while (g_bRepeat) {
-      if (gosleep)
-         sleep (m_oArguments.time);
+      if (gosleep) {
+         //sleep (m_oArguments.time);
+         sleep ( (m_oArguments.time > 300)?300:m_oArguments.time);   //TODO calculate sleep value in more intelligent way
 
-      gosleep = true;
+         //if (m_oArguments.verbose >= 2) { printf ("log: waked up\n"); fflush (stdout); }
+         if (log && m_oArguments.verbose >= 2) { fprintf (log, "log: waked up\n"); fflush (log); }
+      }
 
       if (!g_bRepeat)
          break;
 
       if (g_bReload) {
+         if (m_oArguments.verbose >= 2) {
+            printf ("reload directories\n");
+            if (log) fprintf (log, "log: reload directories\n");
+         }
 
+         free (randomVector); randomVector = NULL;
 
-         g_bReload = false;
+         for (vectorLast = vector; vectorLast != NULL; vectorLast = vectorLast->next) {
+            cleanupImageVector (&vectorLast->vector);
+         }//end for
+         vector = NULL;
+
+         readDirectories (&vector, m_oArguments.directory);
+         countAcceptedImages (&sumImages, vector);
+
+         if (sumImages <= 1) {
+            fprintf (stderr, "error: not enough images to rotate (< 2)\n");
+            if (log) fprintf (log, "error: not enough images to rotate (< 2)\n");
+            return 4;
+         }
+
+         createRandomList (&randomVector, &oldLikelihood, vector, sumImages, m_oArguments.likelihood);
+
+         reloadcount = 0;
+         g_bReload   = false;
+         gosleep     = true;
          continue;
       }
 
-      if (twoRandom) {   //TODO better random algorithm for big values
-         //random = oldLikelihood / ( (unsigned int)rand () + 1);
-         random += (long long)rand () + (long long)rand () + (long long)rand (); random %= oldLikelihood;
-         random += (long long)rand () + (long long)rand () + (long long)rand (); random %= oldLikelihood;
-         random += (long long)rand () + (long long)rand () + (long long)rand (); random %= oldLikelihood;
-         random += (long long)rand () + (long long)rand () + (long long)rand (); random %= oldLikelihood;
-         random += (long long)rand () + (long long)rand () + (long long)rand (); random %= oldLikelihood;
-         random += (long long)rand () + (long long)rand () + (long long)rand (); random %= oldLikelihood;
-         random += (long long)rand () + (long long)rand () + (long long)rand (); random %= oldLikelihood;
-      } else {
-         random  = rand () % oldLikelihood;
+      if (!g_bNext && (difftime (time (NULL), begtime) < m_oArguments.time) ) {
+         continue;
       }
+
+      gosleep = true;
+      g_bNext = false;
+
+
+      random = randomValue (random, oldLikelihood);
 
       ++random;
 
-
-      int n;
-      for (n = 0; n < sumImages; ++n) {
-         if (randomVector[n].likelihood >= random) {
-            if (current == &randomVector[n])
-               gosleep = false;
-            else
-               current = &randomVector[n];
-            break;
+      int n = sumImages - 1;
+      int a = sumImages / 2 + 1;
+      while (a >= 1) {
+         if (randomVector[n-a].likelihood >= random) {
+            n -= a;
          }
-      }//end for
 
-      if (!gosleep)
+         if (a <= 2) {
+            --a;
+            continue;
+         } else if (a%2)
+            ++a;
+
+         a /= 2;
+      }//end while
+
+      if (current == &randomVector[n]) {
+         gosleep = false;
          continue;
+      }
+
+      current = &randomVector[n];
 
 
       strncpy (&current->vector->temp1[current->vector->temp2], current->vector->vector.vector[current->pos], 512 - current->vector->temp2);
@@ -238,67 +270,41 @@ int main (int argc, const char *argv[], const char *envp[]) {
       int pid;
 
       if (!(pid = fork() ) ) {
+         if (log) { dup2 (fileno(log), fileno(stdout) ); dup2 (fileno(log), fileno(stderr) ); fclose (log); }
          execvp ("/system/bin/mksh", argv2);
          exit (1);
-      } else {
-         waitpid (pid, NULL, 0);
       }
 
 
-/*      int in_fd = open (current->vector->temp1, O_RDONLY);
+      waitpid (pid, NULL, 0);
+      
+      time_t curr = time (NULL);
+      if (begtime + m_oArguments.time < curr)
+         while ( (begtime += m_oArguments.time) < curr) ;
 
-      if (!in_fd) {
-         fprintf (stderr, "warning: cannot copy image \"%s\"\n", current->vector->temp1);
-         continue;
+      if (m_oArguments.verbose >= 2) {
+         printf ("set wallpaper: %s\n", current->vector->temp1);
+         if (log) fprintf (log, "log: set wallpaper: %s\n", current->vector->temp1);
       }
 
-      //posix_fadvise(in_fd, 0, 0, POSIX_FADV_SEQUENTIAL);
-
-
-
-
-      int out_fd = open ("/data/data/com.android.settings/files/wallpaper", O_WRONLY);
-
-      if (!out_fd) {
-         close (in_fd);
-         fprintf (stderr, "warning: cannot copy image to \"/data/data/com.android.settings/files/wallpaper\"\n");
-         continue;
+      if (++reloadcount >= 5) {   //TODO make this more dynamic
+         g_bReload = true;
+         gosleep   = false;
       }
-
-      char buf[8192];
-
-      while (true) {
-         ssize_t result = read (in_fd, &buf[0], sizeof(buf) );
-         if (result < 0) {
-            fprintf (stderr, "warning: problems while reading image\n");
-            break;
-         }
-         if (result == 0) {
-            fprintf (stderr, "warning: problems while reading image2\n");
-            break;
-         }
-fprintf (stderr, "point1\n");
-         if (write (out_fd, &buf[0], result) <= 0) {
-            fprintf (stderr, "warning: problems while writing image\n");
-            break;
-         }
-      }
-
-      close (in_fd);
-      close (out_fd);
-*/
-      printf ("set wallpaper: %s\n", current->vector->temp1);
 
       //printf ("working %lli %i %lli \n", oldLikelihood, RAND_MAX, random);
       fflush(stdout);
+      if (log) fflush(log);
    }//end while
 
 
    /*------------------------Cleanup-----------------------------------------------*/
+   free (randomVector);
    for (vectorLast = vector; vectorLast != NULL; vectorLast = vectorLast->next) {
       cleanupImageVector (&vectorLast->vector);
    }//end for
 
+   if (log) fclose (log);
 
    return 0;
 }//end Main

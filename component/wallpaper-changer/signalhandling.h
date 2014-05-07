@@ -12,16 +12,21 @@
 //---------------------------Start catchSignal-------------------------------------//
 void catchSignal (int sigNr) {
    switch (sigNr) {
-   case  2:
+   case SIGINT:
       printf ("\ncatched signal SIGINT\n"); fflush (stdout);
       g_bRepeat = false;
       break;
-   case 10:
+   case SIGUSR1:
       printf ("\ncatched signal SIGUSR1\n"); fflush (stdout);
       g_bReload = true;
       break;
-   case 14:
+   case SIGALRM:
       printf ("\ncatched signal SIGALRM\n"); fflush (stdout);
+      g_bNext = true;
+      break;
+   case SIGTERM:
+      printf ("\ncatched signal SIGTERM\n"); fflush (stdout);
+      g_bRepeat = false;
       break;
    default:
       printf ("\ncatched signal %i\n", sigNr); fflush (stdout);
@@ -36,8 +41,10 @@ void registerSignals () {
    signal (SIGINT , catchSignal);
    signal (SIGUSR1, catchSignal);
    signal (SIGALRM, catchSignal);
+   signal (SIGTERM, catchSignal);
 
-//   for (int sigNr = 1; sigNr < 32; ++sigNr) {
+   //for (int sigNr = 1; sigNr < 32; ++sigNr) {
+      //signal (sigNr, catchSignal);
 
       //if (sigNr == 13 || sigNr == 25) continue;   // debugging with GDB
       //if (sigNr == 2) continue;   // CTRL + C
@@ -51,7 +58,7 @@ void registerSignals () {
 //      sa.sa_handler = HandleSIGNAL; // set our handler
 
 //      sigaction(sigNr, &sa, 0);
-//   }//end for
+   //}//end for
 }//end Fct
 
 #endif //SIGNALHANDLING_H
