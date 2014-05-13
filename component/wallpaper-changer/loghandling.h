@@ -60,7 +60,7 @@ void logFlush () {
          if (g_oLog) fprintf (g_oLog, "wallpaper-changer: verbose: found images: %i\n", maxImages); \
          if (g_oLog) fprintf (g_oLog, "wallpaper-changer: verbose: accepted images: %i\n", sumImages); \
 \
-         time_t temp11 = m_oArguments.time + begtime; struct tm *temp10 = localtime (&temp11); \
+         time_t temp11 = m_oArguments.time + begtime + m_oArguments.timeoffset; struct tm *temp10 = localtime (&temp11); \
          printf ("next change: %.0fs (%4i-%02i-%02i %02i:%02i:%02i)\n", m_oArguments.time - difftime (time(NULL), begtime), temp10->tm_year + 1900, temp10->tm_mon, temp10->tm_mday, temp10->tm_hour, temp10->tm_min, temp10->tm_sec); \
          if (g_oLog) fprintf (g_oLog, "wallpaper-changer: verbose: next change: %.0fs (%4i-%02i-%02i %02i:%02i:%02i)\n", m_oArguments.time - difftime (time(NULL), begtime),  temp10->tm_year + 1900, temp10->tm_mon, temp10->tm_mday, temp10->tm_hour, temp10->tm_min, temp10->tm_sec); \
 

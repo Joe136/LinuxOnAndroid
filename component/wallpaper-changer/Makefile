@@ -2,36 +2,102 @@
 # See the file "license.terms" for information on usage and redistribution of
 # this file, and for a DISCLAIMER OF ALL WARRANTIES.
 
-CC          = gcc
-CFLAGS      = -std=gnu99 -static -O3 -Wall
-LDFLAGS     = 
-LIBS        = 
+## Program specification
+APP_BINARY   = wallpaper-changer
 
-srcdir      = .
-prefix      = /system
-exec_prefix = ${prefix}
-bindir      = ${exec_prefix}/xbin
+MAJOR        = 0
+MINOR        = 1
+PATCH        = 3
+
+## Compiler specification
+CC           = gcc
+CPP          = g++
+
+## Directory specification
+srcdir       = .
+prefix       = /proc/1/root/system
+exec_prefix  = ${prefix}
+bindir       = ${exec_prefix}/xbin
 # man1dir     = ${prefix}/man/man1
 
-INSTALL         = /usr/bin/install
-INSTALL_PROGRAM = ${INSTALL}
-INSTALL_DATA    = ${INSTALL} -m 755
+## 
+NOWARNINGS   = #-Wno-comment -Wno-reorder -Wno-unused-variable -Wno-unused-result -Wno-sign-compare -Wno-maybe-uninitialized
+WARNINGS     = -Wall -Werror $(NOWARNINGS)
 
-OBJECTS     = $(shell ls *.c 2> /dev/null | xargs basename -s .c)
-INST        = wallpaper-changer
+## 
+INCLUDES     = 
+CPPFLAGS     = -std=c++11 -march=native -O3 -flto -fPIC -DLINUX -DVERSION=\"$(MAJOR).$(MINOR).$(PATCH)\" $(WARNINGS) $(INCLUDES)
+CCFLAGS      = -std=gnu99 -march=native -O3       -fPIC -DLINUX -DVERSION=\"$(MAJOR).$(MINOR).$(PATCH)\" $(WARNINGS) $(INCLUDES)
+CFLAGS       = -std=gnu99 -march=native -O3       -fPIC -DLINUX -DVERSION=\"$(MAJOR).$(MINOR).$(PATCH)\" $(WARNINGS) $(INCLUDES)
+LDFLAGS      =            -march=native -O3 -static -Wl,-Bstatic  #-flto
+
+## Get all .c, .cc, .cpp files and convert suffix to .o
+OBJECTS     += $(shell ls *.cpp > /dev/null 2>&1 && ls *.cpp 2> /dev/null | xargs basename -s cpp | xargs -I {} echo -n "{}opp ")
+OBJECTS     += $(shell ls *.cc  > /dev/null 2>&1 && ls *.cc  2> /dev/null | xargs basename -s cc  | xargs -I {} echo -n "{}oc ")
+OBJECTS     += $(shell ls *.c   > /dev/null 2>&1 && ls *.c   2> /dev/null | xargs basename -s c   | xargs -I {} echo -n "{}o ")
+DEPENDS      = $(shell ls *.h  2> /dev/null)
 
 
-%.la: %.c
-	$(CC) -shared $(CFLAGS) $(LDFLAGS) $(LIBS) -o $(<:.c=.la) $<
+## Libraries
+STATIC_LIBS  = 
+DYNAMIC_LIBS = 
 
-%.rm:
-	rm -f $(@:.rm=)
 
-%.install:
-	$(INSTALL_PROGRAM) $(@:.install=) $(bindir)/
+## Make commands
+all: $(APP_BINARY)
 
-all: $(srcdir)/$(OBJECTS)
 
-clean: $(srcdir)/$(OBJECTS:=.rm)
+## Cleanup
+clean:
+	@echo "Cleaning up directory."
+	rm -f *.a *.o $(APP_BINARY) core *~ log errlog
 
-install: all $(srcdir)/$(INST:=.install)
+clean-all: clean
+	make clean -C htmlcxx
+
+
+## Install
+install:
+	install $(APP_BINARY) $(bindir)
+
+
+## Compile Application
+$(APP_BINARY): $(OBJECTS)
+	$(CPP) $(OBJECTS) -Wl,-Bstatic $(STATIC_LIBS) -Wl,-Bdynamic $(DYNAMIC_LIBS) $(LDFLAGS) -o $(APP_BINARY)
+
+
+## Compile Objects
+%.o: %.cpp
+	$(CPP) $(CPPFLAGS) -c -o $@ $<
+
+%.o: %.cpp %.h
+	$(CPP) $(CPPFLAGS) -c -o $@ $<
+
+%.o: %.cpp %.hpp
+	$(CPP) $(CPPFLAGS) -c -o $@ $<
+
+%.o: %.cc
+	$(CC) $(CCFLAGS) -c -o $@ $<
+
+%.o: %.cc %.h
+	$(CC) $(CCFLAGS) -c -o $@ $<
+
+%.o: %.c $(DEPENDS)
+	$(CC) $(CFLAGS) -c -o $@ $<
+
+%.o: %.c %.h $(DEPENDS)
+	$(CC) $(CFLAGS) -c -o $@ $<
+
+
+strip:
+	strip -s $(APP_BINARY)
+
+
+## Debugging
+debug: CPPFLAGS += -O0 -ggdb
+debug: CFLAGS   += -O0 -ggdb
+debug: LDFLAGS  += -O0 -ggdb
+
+
+debug: $(OBJECTS) $(APP_BINARY)
+

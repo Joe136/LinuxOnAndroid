@@ -29,6 +29,9 @@ void catchSignal (int sigNr) {
    case SIGQUIT:
       execSignal ("catched signal SIGQUIT", &g_bRepeat, false);
       break;
+   case SIGTRAP:
+      execSignal ("catched signal SIGTRAP", &g_bTime, true);
+      break;
    case SIGUSR1:
       execSignal ("catched signal SIGUSR1", &g_bReload, true);
       break;
@@ -54,6 +57,7 @@ void registerSignals () {
    signal (SIGHUP , catchSignal);
    signal (SIGINT , catchSignal);
    signal (SIGQUIT, catchSignal);
+   signal (SIGTRAP, catchSignal);
    signal (SIGUSR1, catchSignal);
    signal (SIGUSR2, catchSignal);
    signal (SIGALRM, catchSignal);

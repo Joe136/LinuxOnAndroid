@@ -10,8 +10,10 @@
 #include<string.h>
 #include<time.h>
 #include<sys/types.h>
+#include<sys/wait.h>
 #include<sys/stat.h>
-//#include<unistd.h>
+#include<signal.h>
+#include<unistd.h>
 
 #include "wallpaper-changer.h"
 
@@ -34,6 +36,7 @@ struct DirectoryEntity {
 struct Arguments {
    struct DirectoryEntity *directory;
    size_t                  time;
+   int                     timeoffset;
    int                     likelihood;
    int                     verbose;
    char const             *logfile;
@@ -108,7 +111,7 @@ bool checkArguments (struct Arguments *args, int argc, const char *argv[], const
          args->verbose = 0;
 
       }
-      else if ( (i + 1 < argc) && (!strncmp (argv[i], "--reload", 12) ) ) {
+      else if ( (i + 1 < argc) && (!strncmp (argv[i], "--reload", 9) ) ) {
          ++i;
          int n = atoi (argv[i]);
          if (n > 0)
@@ -172,6 +175,13 @@ bool checkArguments (struct Arguments *args, int argc, const char *argv[], const
          }
 
       }
+      else if ( (i + 1 < argc) && (!strncmp (argv[i], "--timeoffset", 13) ) ) {
+         ++i;
+         int n = atoi (argv[i]);
+         if (n >= -12 && n <= 12)
+            args->timeoffset = n * 60 * 60;
+
+      }
       else if ( (!strncmp (argv[i], "--verbose", 10) ) ) {
          ++args->verbose;
 
@@ -197,6 +207,7 @@ bool checkArguments (struct Arguments *args, int argc, const char *argv[], const
          printf ("  --reload <multiplicator>   Times of WP changes until reloading the directories\n");
          printf ("  --status                   Let the daemon print some infos\n");
          printf ("  --time <time>s|m|h|D|W|M|Y Time between WP changes (default: 2 days)\n");
+         printf ("  --timeoffset <hour>        Offset for timestamps (-12 to 12)\n");
          printf ("  --verbose                  Increases log level\n");
          printf ("  --waitfirst <seconds>      Wait some time before starting (e.g. if directory is not mounted)\n");
          printf ("\n");

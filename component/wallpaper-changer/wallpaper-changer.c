@@ -22,6 +22,7 @@ static bool  g_bRepeat = true;
 static bool  g_bReload = false;
 static bool  g_bNext   = false;
 static bool  g_bStatus = false;
+static bool  g_bTime   = false;
 static FILE *g_oLog    = NULL;
 
 #include "signalhandling.h"
@@ -137,6 +138,12 @@ int main (int argc, const char *argv[], const char *envp[]) {
          if (m_oArguments.verbose >= 3) { logMsg ("waked up"); logFlush (); }
       }
 
+      if (g_bTime) {
+         begtime = time (NULL);
+         g_bTime = false;
+         continue;
+      }
+
       if (!g_bRepeat)
          break;
 
@@ -226,8 +233,11 @@ int main (int argc, const char *argv[], const char *envp[]) {
       waitpid (pid, NULL, 0);
 
       time_t curr = time (NULL);
-      if (begtime + m_oArguments.time <= curr)
-         while ( (begtime += m_oArguments.time) < curr) ;
+
+      while (begtime + m_oArguments.time <= curr) {
+         begtime += m_oArguments.time;
+      }//end while
+
 
       if (m_oArguments.verbose >= 2) {
          printf ("set wallpaper: %s\n", current->vector->temp1);
