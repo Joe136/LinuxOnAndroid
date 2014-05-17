@@ -1,3 +1,5 @@
 *.img
+*.o
 component/chroot-break/chroot-break
 component/wallpaper-changer/wallpaper-changer
+component/battery-notification/battery-notification
