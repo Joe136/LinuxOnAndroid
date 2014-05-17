@@ -75,6 +75,7 @@ stats|info)
   echo ""
   ifconfig "$gsm_iface" | head -n 3 && ifconfig "$gsm_iface" | tail -n 2 | head -n 1
   echo ""
+  [[ -e "/usr/bin/battery-notification" ]] && battery-notification
   echo -n "Response to Ping: "
   if [ "$(cat /proc/sys/net/ipv4/icmp_echo_ignore_all)" == "1" ]; then echo "off"; else echo "on"; fi
   cpu_stats
