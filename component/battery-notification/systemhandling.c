@@ -16,19 +16,26 @@
 
 
 
-//---------------------------Start Main--------------------------------------------//
-int main (int argc, const char* argv[], const char* envp[]) {
+//---------------------------Start breakChrootEnv----------------------------------//
+int breakChroot () {
    enum tResult res = breakChrootEnv ();
 
-   if (res != NOERROR)
-      return 2;
+   if (res == NOERROR)
+      return 1;
+   else
+      return 0;
+}//end Fct
 
+
+
+//---------------------------Start getBatteryLevel---------------------------------//
+int getBatteryLevel () {
    int pipefd[2];
 
    int ret = pipe (pipefd);
 
    if (ret != 0)
-      return 3;
+      return -3;
 
    int child = fork();
 
@@ -58,28 +65,24 @@ int main (int argc, const char* argv[], const char* envp[]) {
 
    if (!len) {
       printf ("error: could not read battery status\n");
-      return 4;
+      return -4;
    }
 
    char *beg = strstr (buffer, "level:");
 
    if (!beg) {
       printf ("error: could not detect battery level\n");
-      return 5;
+      return -5;
    }
 
    char *end = strstr (beg, "\n");
 
    if (!end) {
       printf ("error: could not detect battery level\n");
-      return 6;
+      return -6;
    }
 
    end[0] = 0;
-   int level = atoi (&beg[6]);
 
-   printf ("battery level: %i\n", level);
-
-   return 0;
-}//end Main
-
+   return atoi (&beg[6]);
+}//end Fct
