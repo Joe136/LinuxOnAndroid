@@ -118,6 +118,25 @@ wpnext)
   wallpaper-changer --next
 
 ;;
+music)
+
+   case "$2" in
+   onlineradio)
+      [[ "$3" == "play" ]] && chroot-break -c /system/bin/mksh /system/bin/am broadcast -n de.arvidg.onlineradio/.alarm.OneShotAlarm
+      [[ "$3" == "pause" ]] && chroot-break -c /system/bin/mksh /system/bin/am broadcast -n de.arvidg.onlineradio/.alarm.OneShotAlarm
+      [[ "$3" == "stop" ]] && chroot-break -c /system/bin/mksh /system/bin/am broadcast -n de.arvidg.onlineradio/.alarm.OneShotAlarm
+   ;;
+   #mortplayer)
+   #   [[ "$3" == "play" ]] && chroot-break -c /system/bin/mksh /system/bin/am broadcast -n de.arvidg.onlineradio/.alarm.OneShotAlarm
+   #   [[ "$3" == "pause" ]] && chroot-break -c /system/bin/mksh /system/bin/am broadcast -n de.arvidg.onlineradio/.alarm.OneShotAlarm
+   #   [[ "$3" == "stop" ]] && chroot-break -c /system/bin/mksh /system/bin/am broadcast -n de.arvidg.onlineradio/.alarm.OneShotAlarm
+   #;;
+   *)
+      echo "`basename $0` music onlineradio|mortplayer play|pause|stop" 2> /dev/null
+   ;;
+   esac
+
+;;
 *)
   echo "`basename $0` boost|cpu|dumpsys|free|info|restart|shell|start|status|stop|wlan|wpnext" 2> /dev/null
 
