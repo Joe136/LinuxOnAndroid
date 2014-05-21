@@ -13,24 +13,11 @@
 
 
 
-//---------------------------Struct DirectoryEntity--------------------------------//
-struct DirectoryEntity {
-   char const             *name;
-   struct DirectoryEntity *next;
-};//end struct
-
-
-
 //---------------------------Struct Arguments--------------------------------------//
 struct Arguments {
-   struct DirectoryEntity *directory;
-   size_t                  time;
-   int                     timeoffset;
-   int                     likelihood;
    int                     verbose;
    char const             *logfile;
-   int                     updatetime;
-   int                     reloadmult;
+   int                     begcommands;
    int                     breakup;
 };//end struct
 

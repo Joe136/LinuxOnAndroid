@@ -26,19 +26,16 @@
 int main (int argc, const char* argv[], const char* envp[]) {
 
    /*------------------------Read Arguments----------------------------------------*/
-   struct Arguments m_oArguments;
-   memset (&m_oArguments, 0, sizeof (struct Arguments) );
+   struct Arguments arguments;
+   memset (&arguments, 0, sizeof (struct Arguments) );
 
-   m_oArguments.likelihood = 1;
-   m_oArguments.verbose    = 1;
-   m_oArguments.updatetime = 172800;   // two days
-   m_oArguments.reloadmult = 5;
+   arguments.verbose    = 1;
 
-   if (!checkArguments (&m_oArguments, argc, argv, envp) ) {
+   if (!checkArguments (&arguments, argc, argv, envp) ) {
       return 1;
    }
 
-   if (m_oArguments.breakup)
+   if (arguments.breakup)
       return 0;
 
    enum tResult res = breakChrootEnv ();
@@ -48,6 +45,15 @@ int main (int argc, const char* argv[], const char* envp[]) {
 
    setEnvParams ();
 
-   return openShell ();
+
+   if (arguments.begcommands) {
+      if (execv (argv[arguments.begcommands], (char* const*)&argv[arguments.begcommands]) < 0) {
+         printf("Failed to exec - %s\n", strerror(errno) );
+         return ERR_UNDEFINED;   //TODO: Set a better error value
+      }
+
+      return NOERROR;
+   } else
+      return openShell ();
 }//end Main
 
