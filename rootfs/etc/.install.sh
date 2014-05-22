@@ -2,21 +2,22 @@
 # See the file "license.terms" for information on usage and redistribution of
 # this file, and for a DISCLAIMER OF ALL WARRANTIES.
 
-mkdir -p "$mnt/etc/loa"
-
-
+pwd
+echo $system
+exit
 echo "      Installing user-configs ..."
 # bashrc
 unset second_line
-if [ -e "$mnt/etc/bash.bashrc" ]; then
-  second_line="$(cat "$mnt/etc/bash.bashrc" | head -n 2 | tail -n 1)"
-  echo "$second_line" | grep -qe "exclude" && ignore_bashrc="true"
-
-  if [ "$ignore_bashrc" != "true" ] && ( ! echo "$second_line" | grep -qe "LinuxOnAndroid" ) && [ ! -e "$mnt/etc/bash.bashrc.bak" ]; then
-    mv "$mnt/etc/bash.bashrc" "$mnt/etc/bash.bashrc.bak"
-  fi
-fi
 if [ "$ignore_bashrc" != "true" ]; then
+  if [ -e "$mnt/etc/bash.bashrc" ]; then
+    second_line="$(cat "$mnt/etc/bash.bashrc" | head -n 2 | tail -n 1)"
+    echo "$second_line" | grep -qe "exclude" && ignore_bashrc="true"
+  
+    if [ "$ignore_bashrc" != "true" ] && ( ! echo "$second_line" | grep -qe "LinuxOnAndroid" ) && [ ! -e "$mnt/etc/bash.bashrc.bak" ]; then
+      mv "$mnt/etc/bash.bashrc" "$mnt/etc/bash.bashrc.bak"
+    fi
+  fi
+
   cp -f "bash.bashrc" "$mnt/etc/bash.bashrc"
   chmod 644 "$mnt/etc/bash.bashrc"
   chown root:root "$mnt/etc/bash.bashrc"
@@ -26,15 +27,16 @@ fi
 
 # bash_aliases
 unset second_line
-if [ -e "$mnt/etc/bash.bash_aliases" ]; then
-  second_line="$(cat "$mnt/etc/bash.bash_aliases" | head -n 2 | tail -n 1)"
-  echo "$second_line" | grep -qe "exclude" && ignore_bash_aliases="true"
-
-  if [ "$ignore_bash_aliases" != "true" ] && ( ! echo "$second_line" | grep -qe "LinuxOnAndroid" ) && [ ! -e "$mnt/etc/bash.bash_aliases.bak" ]; then
-    mv "$mnt/etc/bash.bash_aliases" "$mnt/etc/bash.bash_aliases.bak"
+if [ "$ignore_bash_aliases" != "true" ]; then
+  if [ -e "$mnt/etc/bash.bash_aliases" ]; then
+    second_line="$(cat "$mnt/etc/bash.bash_aliases" | head -n 2 | tail -n 1)"
+    echo "$second_line" | grep -qe "exclude" && ignore_bash_aliases="true"
+  
+    if [ "$ignore_bash_aliases" != "true" ] && ( ! echo "$second_line" | grep -qe "LinuxOnAndroid" ) && [ ! -e "$mnt/etc/bash.bash_aliases.bak" ]; then
+      mv "$mnt/etc/bash.bash_aliases" "$mnt/etc/bash.bash_aliases.bak"
+    fi
   fi
-fi
-if [ "$ignore_bashrc" != "true" ]; then
+
   cp -f "bash.bashrc_aliases" "$mnt/etc/bash.bashrc_aliases"
   chmod 644 "$mnt/etc/bash.bashrc_aliases"
   chown root:root "$mnt/etc/bash.bashrc_aliases"
@@ -75,7 +77,7 @@ fi
 
 
 for d in */.install.sh; do
-  cd "$d"
-  sh "./.install.sh"
+  cd "${d:0:${#d}-12}"
+  sh .install.sh
   cd - > /dev/null
 done

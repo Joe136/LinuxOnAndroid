@@ -120,13 +120,13 @@ function function_initialize()
    #   export PATH="$arg_path_abs"
    #else
    export PATH="$bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$PATH"
-   if [ ! -z "arg_path_pre" ]; then
+   if [ -n "arg_path_pre" ]; then
       export PATH="$arg_path_pre:$PATH"
    fi
-   if [ ! -z "arg_path_post" ]; then
+   if [ -n "arg_path_post" ]; then
       export PATH="$PATH:$arg_path_post"
    fi
-   #if [ ! -z "arg_home" ]; then
+   #if [ -n "arg_home" ]; then
       export HOME="/root"
    #else
    #   export HOME="$arg_home"
@@ -138,10 +138,14 @@ function function_initialize()
 
    # Search image
    if [ -z "$img" ]; then
+      echo "Searching the Linux image ..."
       # Sets the img variable
       searchImage $kit $system
       export img
    fi
+
+   # Set architecture for forwarding
+   [[ -n "$architecture" ]] && arg_arch="--architecture $architecture"
 
    # 
    if [ ! -e "$config_path/config.default" ]; then
@@ -189,17 +193,18 @@ function function_execute()
    # Install $system config
    if [ "$arg_init" == "true" ]; then
       if [ -z "$img" ]; then
-         "$bin/$system" install --system "$system" --noimage "$arg_native" "$arg_update" #--force
+         echo "Initialize without image file specification"
+         "$bin/$system" install --system "$system" $arg_arch --noimage "$arg_native" "$arg_update" #--force
       else
-         "$bin/$system" install --system "$system" --img "$img" "$arg_native" "$arg_update" #--force
+         "$bin/$system" install --system "$system" $arg_arch --img "$img" "$arg_native" "$arg_update" #--force
       fi
       exit 0
    elif [ -z "$img" ]; then
       echo "Cannot find the image file. The system will only initialized."
-      "$bin/$system" install --system "$system" --noimage "$arg_native" "$arg_update" #--force
+      "$bin/$system" install --system "$system" $arg_arch --noimage "$arg_native" "$arg_update" #--force
       exit 6
    else
-      "$bin/$system" install --system "$system" --img "$img" "$arg_native" "$arg_update"
+      "$bin/$system" install --system "$system" $arg_arch --img "$img" "$arg_native" "$arg_update"
    fi
 
    echo "Mounting the Linux image ..."
@@ -210,9 +215,15 @@ function function_execute()
       exit 7
    fi
 
+   # Find out architecture
+   if [ -z "$architecture" ]; then
+      echo "Guessing Linux Distribution ..."
+      : #TODO find out architecture
+   fi
+
    echo "Customizing the image ..."
    # TODO Complete the next line
-   if [ -e "$" ]; then
+   if ([ -e "$kit/config.user" ] || [ -e "$kit/config" ]) && [ -e "$kit/rootfs/.install.sh" ]; then
       echo "  Installing additional files ..."
 
       unset config_file
@@ -222,7 +233,10 @@ function function_execute()
          config_file="--config=$kit/config"
       fi
 
+      export kit system mnt img sdcard intern architecture
+
       cd "$kit/rootfs"
+      #sh "$kit/rootfs/.install.sh" "$config_file"
       sh "$kit/rootfs/.install.sh" "$config_file"
       #mksh "$kit/rootfs/.install.sh" "$config_file"
       cd - > /dev/null
@@ -398,7 +412,7 @@ function function_checkArguments()
          esac
       elif [ "$(echo -"$curr_arg" | head -c 2)" == "--" ];then
          args="$(echo -"$curr_arg" | awk 'BEGIN{FS=""}{ for (i = 3; i <= NF; ++i) print $i; }')"
-  
+
          for arg in `echo -e "$args"`; do
             case "$arg" in
             ##-----------------------System Name------------------------------##
@@ -425,9 +439,9 @@ function function_checkArguments()
             else
                arg_system="true"
                system="${BASH_ARGV[$i]}"
-            fi  
+            fi
          fi
-  
+
          ##-----------------------Unknown Argument----------------------------##
          #echo -e "$0: unknown argument: $curr_arg\n"
          #"$0" -h
@@ -466,8 +480,11 @@ function function_info()
 function_help()
 {
    name="$(basename "$0")"
-   echo -e "$name [-h|--help]\nPrint this help\n"
-   echo -e "$name [-s|--system]\nA name for the operating system\n"
+   echo "LinuxOnAndroid"
+   echo "Installs and prepares a Linux Operating-System parallel to Android"
+   echo ""
+   echo -e "$name [-h|--help]\n\tPrint this help"
+   echo -e "$name [-s|--system] <system name>\n\tA name for the operating systen"
 } #end Fct
 
 

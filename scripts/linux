@@ -573,7 +573,7 @@ function function_mount()
 ##---------------------------Start function_umount----------------------------##
 function function_umount()
 {
-  function_umountimg
+  #function_umountimg
   #"$0" umountimg $@
 
   #loop="$(mountpoint -n "$mnt" | cut -sd' ' -f1)"
@@ -582,6 +582,9 @@ function function_umount()
   #fi
 
   mounts="$(cut -sd' ' -f2 /proc/mounts | grep "^$mnt" | sort -r)"
+
+  echo $mounts
+  return
 
   for m in $mounts; do
     if losetup "$(mountpoint -n "$m" | cut -sd' ' -f1)" > /dev/null 2>&1; then
@@ -919,7 +922,7 @@ function function_install()
     echo "mnt=\"$mnt\"" >> "$config_path/config.$system"
     echo "native=\"$native\"" >> "$config_path/config.$system"
     echo "mountdefault=\"$mountdefault\" #sdcard,intern,android,images,images:default,images:system,images::wireshark,ram" >> "$config_path/config.$system"
-    echo "architecture=\"$architecture\" #debian,arch" >> "$config_path/config.$system"
+    echo "architecture=\"$architecture\" #debian,arch,fedora,gentoo,suse,bsd" >> "$config_path/config.$system"
     echo "partition=\"$partition\"" >> "$config_path/config.$system"
     echo "imgtype=\"$imgtype\"" >> "$config_path/config.$system"
     echo "imgoptions=\"$imgoptions\"" >> "$config_path/config.$system"

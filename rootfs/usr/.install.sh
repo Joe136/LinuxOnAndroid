@@ -5,7 +5,7 @@
 #  TODO Install anything here
 
 for d in */.install.sh; do
-  cd "$d"
-  sh "./.install.sh"
+  cd "${d:0:${#d}-12}"
+  sh .install.sh
   cd - > /dev/null
 done
