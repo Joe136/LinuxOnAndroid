@@ -165,12 +165,20 @@ function function_initialize()
 
 
 
+##---------------------------Start function_build_system_script---------------##
+function function_build_system_script()
+{
+   cat "$kit/scripts/utils" "$kit/scripts/argumenthandling" "$kit/scripts/main" "$kit/scripts/mounthandling" "$kit/scripts/install" "$kit/scripts/linux" > "$bin/$system"
+} #end Fct
+
+
+
 ##---------------------------Start function_execute---------------------------##
 function function_execute()
 {
    function_info
 
-   ##---------------------------Start Main---------------------------------------##
+   ##------------------------Start Main---------------------------------------##
    echo "Remounting $ANDROID_ROOT rw ..."
    #set -x
    #if [ $(vercmp $(getBBver busybox) 1.20.0) -gt -1 ] ; then
@@ -187,7 +195,8 @@ function function_execute()
       #chmod 755 $bin/$file
    #done
    #cd - > /dev/null
-   cp -f "$kit/scripts/linux" "$bin/$system"
+   function_build_system_script
+   #cp -f "$kit/scripts/linux" "$bin/$system"
    chmod 755 "$bin/$system"
 
    # Install $system config

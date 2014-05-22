@@ -1,0 +1,25 @@
+#!/system/bin/mksh
+# See the file "license.terms" for information on usage and redistribution of
+# this file, and for a DISCLAIMER OF ALL WARRANTIES.
+
+function currentscriptpath()
+{
+  local fullpath=`echo "$(readlink -f $0)"`
+  local fullpath_length=`echo ${#fullpath}`
+  local scriptname="$(basename "$fullpath")"
+  local scriptname_length=`echo ${#scriptname}`
+  local result_length=`echo $((fullpath_length - $scriptname_length - 1))`
+  local result=`echo "$fullpath" | head -c $result_length`
+  echo "$result"
+}
+
+function getloopno()
+{
+for i in $(seq 255 -1 0); do
+  if [ ! -e "/dev/block/loop$i" ]; then
+    echo $i
+    return
+  fi
+done
+}
+

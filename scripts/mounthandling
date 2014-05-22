@@ -1,0 +1,390 @@
+#!/system/bin/mksh
+# See the file "license.terms" for information on usage and redistribution of
+# this file, and for a DISCLAIMER OF ALL WARRANTIES.
+
+##---------------------------Start function_mount-----------------------------##
+function function_mount()
+{
+  echo "point2: " $img
+  if [ ! -e "$config_path/config.$system" ]; then
+    function_install
+    . "$config_path/config.$system"
+  fi
+
+  if mount | grep -q " $mnt "; then
+    echo "$img already mounted"
+    #if [ "$arg_android" == "true" ] && $(mount | ! grep -q " $mnt/mnt/data "); then
+    #if [ "$arg_android" == "true" ] && ! mountpoint -q "$mnt/mnt/data"; then
+    #  echo "Mounting: System Parts ..."
+    #  mount -o bind "$ANDROID_DATA" "$mnt/mnt/data"
+    #  mount -o bind "$ANDROID_ROOT" "$mnt/mnt/system"
+    #  #if [ -d "/sbin" ]; then
+    #  #  mount -o bind /sbin "$mnt/mnt/sbin"
+    #  #fi
+    #fi
+    return
+  fi
+
+  echo "Mounting: Prepare ..."
+  #some ROMS mount the sdcard nodev
+  mount -o dev,remount "$sdcard"
+  #some also don't load filesystem drivers on boot
+  grep -q ext2 /proc/filesystems || modprobe ext2
+
+  [[ -n "$imgoptions" ]] && imgoptions="-o $imgoptions"
+
+  if [ "$native" == "true" ]; then
+    echo "Mounting: Native mount ..."
+    mount -t "$imgtype" $imgoptions "$partition" "$mnt"
+  else
+    echo "Mounting: Loopback mount ..."
+    mkdir -p "$mnt"
+
+    loopno=$(getloopno)
+    loop="/dev/block/loop$loopno"
+    if [ "$loopno" == "" ]; then
+      echo "Error: Could not mount image, no free loop-devices found"
+      exit 6
+    fi
+    #if [ -e "$loop" ]; then
+    #  echo "Remove Loopback Device"
+    #  losetup -d "$loop"
+    #  rm "$loop"
+    #fi
+    #create loop device
+    mknod "$loop" b 7 "$loopno"
+    losetup "$loop" "$img"
+    #mount -t "$imgtype" $imgoptions "$loop" "$mnt"
+    mount -t "$imgtype" "$loop" "$mnt"
+    #touch "$img"
+  fi
+
+  if ! mountpoint -q "$mnt"; then
+    echo "Error: Could not mount image, unknown problem"
+    exit 7
+  fi
+
+  echo "Mounting: Setting up chroot environment ..."
+  mount -o bind /dev "$mnt/dev"
+  mount -t devpts devpts "$mnt/dev/pts"
+  mount -o bind /proc "$mnt/proc"
+  mount -o bind /sys "$mnt/sys"
+
+  if [ ! -z "$mountdefault" ]; then
+    for comm in $(echo "$mountdefault" | awk 'BEGIN{FS=","}{print $0}'); do
+      if [ "$comm" == "sdcard" ]; then # TODO
+        #make the SD card accessible to the chroot environment
+        mkdir -p "$mnt/mnt/sdcard"
+        #mount -o bind $sdcard "$mnt/media/sdcard"
+        mount_point=$(df -P | awk '$6=="'$sdcard'" {print $1}')
+        mount -t vfat -o rw,dirsync,suid,exec,relatime "$mount_point" "$mnt/mnt/sdcard"
+      elif [ "$comm" == "intern" ]; then
+        :
+      #elif [ "$comm" == "android" ]; then
+      #  :
+      elif [ "$comm" == "images" ]; then
+        "$0" mountimg $@
+      fi
+    done
+
+    #if [ "$2" = "android" ]; then
+    #  echo "Mounting: System Parts ..."
+    #  mount -o bind $ANDROID_DATA "$mnt/mnt/data"
+    #  mount -o bind $ANDROID_ROOT "$mnt/mnt/system"
+    #  #if [ -d "/sbin" ]; then
+    #  #  mount -o bind /sbin "$mnt/mnt/sbin"
+    #  #fi
+    #fi
+  fi
+
+  echo "	[ Done ]"
+}
+
+
+
+##---------------------------Start function_umount----------------------------##
+function function_umount()
+{
+  #function_umountimg
+  #"$0" umountimg $@
+
+  #loop="$(mountpoint -n "$mnt" | cut -sd' ' -f1)"
+  #if ! losetup "$loop" > /dev/null 2>&1; then
+  #  unset loop
+  #fi
+
+  mounts="$(cut -sd' ' -f2 /proc/mounts | grep "^$mnt" | sort -r)"
+
+  echo $mounts
+  return
+
+  for m in $mounts; do
+    if losetup "$(mountpoint -n "$m" | cut -sd' ' -f1)" > /dev/null 2>&1; then
+      loop="$loop\n`losetup "$(mountpoint -n "$m" | cut -sd' ' -f1)"`"
+    fi
+  done
+
+  sys_pid="$(ps -o pid,comm | awk '/zygote/ || /'$$'/ {print $1}')"
+  mnt_pid="$(fuser -m "$mnt")"
+
+  echo "Kill running processes"
+  #fuser -km "$mnt" # TODO replace with include list
+  for proc in $mnt_pid; do
+    unset temp1
+    for p in $sys_pid; do
+      if [ "$proc" == "$p" ]; then
+        temp1="true"
+        break
+      fi
+    done
+    kill -s 9 "$proc"
+  done
+
+  echo "Unmounting ..."
+  #awk '{print $2}' /proc/mounts | grep "^$mnt" | sort -r | xargs umount
+  #cut -sd' ' -f2 /proc/mounts | grep "^$mnt" | sort -r | awk '{system("umount -fl \"" $0 "\"")}'
+
+  for m in $mounts; do
+    # Unmount more and more aggressive
+    umount "$m"
+    mountpoint -q "$m" && umount -f "$m"
+    mountpoint -q "$m" && umount -fl "$m"
+  done
+
+  echo "Unmounting: Loopback unmount ..."
+  for l in $loop; do
+    losetup -d "$l"
+    rm "$l"
+  done
+}
+
+
+
+##---------------------------Start function_mountsd---------------------------##
+function function_mountsd()
+{
+  #make the SD card accessible to the chroot environment
+  if [ -z "$sdcard" ] &&  [ -z "$intern" ]; then
+    echo "No media found for mounting"
+    exit 8
+  fi
+
+  if ! mountpoint -q "$mnt"; then
+    echo "$img not mounted"
+    exit 3
+  fi
+
+  if [ -n "$sdcard" ]; then
+    mkdir -p "$mnt/mnt/sdcard"
+
+    if mountpoint -q "$mnt/mnt/sdcard"; then
+      echo "$mnt/mnt/sdcard already mounted"
+    else
+      mount_point=$(df -P | awk '$6=="'$sdcard'" {print $1}')
+      mount -t vfat -o rw,dirsync,suid,exec,relatime "$mount_point" "$mnt/mnt/sdcard"
+    fi
+  fi
+
+  if [ -n "$intern" ]; then
+    mkdir -p "$mnt/mnt/intern"
+
+    if mountpoint -q "$mnt/mnt/intern"; then
+      echo "$mnt/mnt/intern already mounted"
+    else
+      mount_point=$(df -P | awk '$6=="'$intern'" {print $1}')
+      mount -t vfat -o rw,dirsync,suid,exec,relatime "$mount_point" "$mnt/mnt/intern"
+    fi
+  fi
+}
+
+
+
+##---------------------------Start function_umountsd--------------------------##
+function function_umountsd()
+{
+  mounts="$(cut -sd' ' -f2 /proc/mounts | grep "^$mnt/mnt/sdcard" | sort -r)"
+  mounts="$mounts\n$(cut -sd' ' -f2 /proc/mounts | grep "^$mnt/mnt/intern" | sort -r)"
+
+  if [ -z "$mounts" ]; then
+    echo "Nothing to unmount"
+  else
+    for m in $mounts; do
+      if losetup "$(mountpoint -n "$m" | cut -sd' ' -f1)" > /dev/null 2>&1; then
+        loop="$loop\n`losetup "$(mountpoint -n "$m" | cut -sd' ' -f1)"`"
+      fi
+    done
+
+    sys_pid="$(ps -o pid,comm | awk '/zygote/ || /'$$'/ {print $1}')"
+    mnt_pid="$(fuser -m "$mnt/mnt/sdcard")"
+    mnt_pid="$mnt_pid\n$(fuser -m "$mnt/mnt/intern")"
+
+    echo "Kill running processes"
+    for proc in $mnt_pid; do
+      unset temp1
+      for p in $sys_pid; do
+        if [ "$proc" == "$p" ]; then
+          temp1="true"
+          break
+        fi
+      done
+      kill -s 9 "$proc"
+    done
+
+    echo "Unmounting ..."
+    #awk '{print $2}' /proc/mounts | grep "^$mnt" | sort -r | xargs umount
+    #cut -sd' ' -f2 /proc/mounts | grep "^$mnt" | sort -r | awk '{system("umount -fl \"" $0 "\"")}'
+
+    for m in $mounts; do
+      # Unmount more and more aggressive
+      umount "$m"
+      mountpoint -q "$m" && umount -f "$m"
+      mountpoint -q "$m" && umount -fl "$m"
+    done
+
+    echo "Unmounting: Loopback unmount ..."
+    for l in $loop; do
+      losetup -d "$l"
+      rm "$l"
+    done
+  fi
+
+  #echo "Kill running processes"
+  #fuser -km "$mnt/mnt/sdcard"
+  #echo "Unmounting ..."
+  #umount -fl "$mnt/mnt/sdcard"
+}
+
+
+
+##---------------------------Start function_mountimg--------------------------##
+function function_mountimg()
+{
+  #TODO check if $mnt is mounted
+  beg=250
+  unset IFS
+  conffiles=default'
+'"$system"
+  for mountconf in $conffiles; do
+    if [ -e "/data/local/linuxonandroid/mount.$mountconf" ]; then
+      for line in $(cat "/data/local/linuxonandroid/mount.$mountconf" | awk '{print $0}'); do
+        IFS=":"
+        image="$(echo $line | awk '{ print $1 }')"
+        target="$mnt/$(echo $line | awk '{ print $2 }')"
+        options="$(echo $line | awk '{ print $3 }')"
+        type="$(echo $line | awk '{ print $4 }')"
+        unset IFS
+        if [ ! -z "$options" ]; then options="-o $options"; else unset options; fi
+        if [ -z "$type" ]; then type="ext2"; fi
+
+        if [ "$image" != "" ] && [ "$target" != "" ]; then
+          if mountpoint -q "$target" || [ ! -e "$image" ]; then
+            continue;
+          fi
+          for i in $(seq $beg -1 0); do
+            if [ ! -e "/dev/block/loop$i" ]; then
+              loopno=$i
+              beg=$((i-1))
+              break
+            fi
+          done
+          echo mount -t "$type" $options "$image" "$target"
+          loop="/dev/block/loop$loopno"
+          #create loop device
+          mknod "$loop" b 7 "$loopno"
+          losetup "$loop" "$image"
+          mkdir -p "$target"
+          mount -t "$type" $options "$loop" "$target"
+        fi
+      done
+    fi
+  done
+}
+
+
+
+##---------------------------Start function_umountimg-------------------------##
+function function_umountimg()
+{
+  sys_pid="$(ps -o pid,comm | awk '/zygote/ || /'$$'/ {print $1}')"
+  unset IFS
+  conffiles=default'
+'"$system"
+  for mountconf in $conffiles; do
+    if [ -e "/data/local/linuxonandroid/mount.$mountconf" ]; then
+      for line in $(cat "/data/local/linuxonandroid/mount.$mountconf" | awk '{print $0}'); do
+        IFS=":"
+        target="$mnt/$(echo $line | awk '{ print $2 }')"
+        unset IFS
+
+        # Continue if not mounted
+        ! mountpoint -q "$target" && continue
+
+        mounts="$(cut -sd' ' -f2 /proc/mounts | grep "^$target" | sort -r)"
+        mnt_pid="$(fuser -m "$target")"
+
+        # Something's going wrong
+        [[ -z "$mounts" ]] && continue
+
+        for m in $mounts; do
+          if losetup "$(mountpoint -n "$m" | cut -sd' ' -f1)" > /dev/null 2>&1; then
+            loop="$loop\n`losetup "$(mountpoint -n "$m" | cut -sd' ' -f1)"`"
+          fi
+        done
+
+        echo "Kill running processes"
+        for proc in $mnt_pid; do
+          unset temp1
+          for p in $sys_pid; do
+            if [ "$proc" == "$p" ]; then
+              temp1="true"
+              break
+            fi
+          done
+          kill -s 9 "$proc"
+        done
+
+        echo "Unmounting ..."
+        for m in $mounts; do
+          # Unmount more and more aggressive
+          umount "$m"
+          mountpoint -q "$m" && umount -f "$m"
+          mountpoint -q "$m" && umount -fl "$m"
+        done
+
+        echo "Unmounting: Loopback unmount ..."
+        for l in $loop; do
+          losetup -d "$l"
+          rm "$l"
+        done
+      done
+    fi
+  done
+}
+
+
+
+##---------------------------Start function_mountram--------------------------##
+function function_mountram()
+{
+  if ! mountpoint -q "$mnt"; then
+    echo "$img not mounted"
+    exit 5
+  elif mountpoint -q "$mnt/$ramdisk"; then
+    echo "$mnt/$ramdisk already mounted"
+    exit 8
+  fi
+
+  mount -t ramfs ramfs "$mnt/$ramdisk"
+}
+
+
+
+##---------------------------Start function_umountram-------------------------##
+function function_umountram()
+{
+#  echo "Kill running processes"
+#  fuser -km "$mnt/$ramdisk"
+  echo "Unmounting ..."
+  mountpoint -q "$mnt/$ramdisk" && umount -fl "$mnt/$ramdisk"
+}
+

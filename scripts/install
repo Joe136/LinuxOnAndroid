@@ -1,0 +1,86 @@
+#!/system/bin/mksh
+# See the file "license.terms" for information on usage and redistribution of
+# this file, and for a DISCLAIMER OF ALL WARRANTIES.
+
+##---------------------------Start function_install---------------------------##
+function function_install()
+{
+  [[ -z "$mountdefault" ]] && mountdefault="sdcard"
+  #[[ -z "$imgtype" ]] && imgtype="ext2"
+  [[ -z "$ramdisk" ]] && ramdisk="/mnt/ramdisk"
+  [[ -z "$wlan_if" ]] && wlan_if="wlan0"
+  [[ -z "$mobile_if" ]] && mobile_if="rmnet0"
+  [[ -z "$shell" ]] && shell="/bin/bash"
+
+  if [ "$arg_refresh" == "true" ] && [ -e "$config_path/config.$system" ]; then
+    [[ -n "$img" ]] && tmp_img="$img"
+    [[ -n "$mnt" ]] && tmp_mnt="$mnt"
+    [[ -n "$native" ]] && tmp_native="$native"
+    [[ -n "$architecture" ]] && tmp_architecture="$architecture"
+    [[ -n "$partition" ]] && tmp_partition="$partition"
+    [[ "$arg_imgtype" == "true" ]] && tmp_imgtype="$imgtype"
+    [[ -n "$imgoptions" ]] && tmp_imgoptions="$imgoptions"
+    #[[ "$arg_ramdisk" == "true" ]] && tmp_ramdisk="$ramdisk"
+    [[ -n "$sshport" ]] && tmp_sshport="$sshport"
+    [[ -n "$vncport" ]] && tmp_vncport="$vncport"
+    [[ -n "$vncuser" ]] && tmp_vncuser="$vncuser"
+
+    # ! grep -qe "^mountdefault=" "$config_path/config.$system" unset mountdefault
+    unset mountdefault
+    #unset imgtype
+    #grep -qe "^TERM=" "$config_path/config.$system" && unset TERM
+
+    . "$config_path/config.$system"
+    cp "$config_path/config.$system" "$config_path/config.$system.bak"
+    #mv "$config_path/config.$system" "$config_path/config.$system.bak"
+
+    [[ -n "$tmp_img" ]] && img="$tmp_img"
+    [[ -n "$tmp_mnt" ]] && mnt="$tmp_mnt"
+    [[ -n "$tmp_native" ]] && native="$tmp_native"
+    [[ -n "$tmp_architecture" ]] && architecture="$tmp_architecture"
+    [[ -n "$tmp_partition" ]] && partition="$tmp_partition"
+    [[ -n "$tmp_imgtype" ]] && imgtype="$tmp_imgtype"
+    [[ -n "$tmp_imgoptions" ]] && imgoptions="$tmp_imgoptions"
+    #[[ -n "$tmp_ramdisk" ]] && ramdisk="$tmp_ramdisk"
+    [[ -n "$tmp_sshport" ]] && sshport="$tmp_sshport"
+    [[ -n "$tmp_vncport" ]] && vncport="$tmp_vncport"
+    [[ -n "$tmp_vncuser" ]] && vncuser="$tmp_vncuser"
+  fi
+
+
+  [[ -z "$mnt" ]] && mnt="$home/$system"
+  [[ -z "$native" ]] && native="false"
+  [[ -z "$sshport" ]] && sshport="22"
+  #[[ -z "$vncport" ]] && vncport="5901"
+
+
+  if [ "$arg_noimage" == "true" ]; then
+    unset img
+  fi
+
+  if [ ! -e "$config_path/config.$system" ] || [ "$arg_force" == "true" ] || [ "$arg_refresh" == "true" ]; then
+    echo "Creating config files ..."
+    mkdir -p "$config_path"
+    #echo "kit=\"$kit\"" > "$config_path/config.$system"
+    echo "img=\"$img\"" > "$config_path/config.$system"
+    echo "mnt=\"$mnt\"" >> "$config_path/config.$system"
+    echo "native=\"$native\"" >> "$config_path/config.$system"
+    echo "mountdefault=\"$mountdefault\" #sdcard,intern,android,images,images:default,images:system,images::wireshark,ram" >> "$config_path/config.$system"
+    echo "architecture=\"$architecture\" #debian,arch,fedora,gentoo,suse,bsd" >> "$config_path/config.$system"
+    echo "partition=\"$partition\"" >> "$config_path/config.$system"
+    echo "imgtype=\"$imgtype\"" >> "$config_path/config.$system"
+    echo "imgoptions=\"$imgoptions\"" >> "$config_path/config.$system"
+    echo "shell=\"$shell\"" >> "$config_path/config.$system"
+    echo "defaultuser=\"$defaultuser\"" >> "$config_path/config.$system"
+    echo "ramdisk=\"$ramdisk\"" >> "$config_path/config.$system"
+    echo "sshport=\"$sshport\"" >> "$config_path/config.$system"
+    echo "vncport=\"$vncport\"" >> "$config_path/config.$system"
+    echo "vncuser=\"$vncuser\"" >> "$config_path/config.$system"
+    echo "autorun=\"$autorun\"" >> "$config_path/config.$system"
+    echo "wlan_if=\"$wlan_if\"" >> "$config_path/config.$system"
+    echo "mobile_if=\"$mobile_if\"" >> "$config_path/config.$system"
+    #echo "export TERM=\"$TERM\"" >> "$config_path/config.$system"
+    #echo "loopno=\"254\"" >> "$config_path/config.$system"
+  fi
+}
+

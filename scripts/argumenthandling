@@ -1,0 +1,283 @@
+#!/system/bin/mksh
+# See the file "license.terms" for information on usage and redistribution of
+# this file, and for a DISCLAIMER OF ALL WARRANTIES.
+
+##-------------------------Prepare Argument List----------------------------##
+# This part must be in global space
+unset BASH_ARGV
+BASH_ARGC="$#"
+i=-1
+for curr_arg in "$@"; do
+  set +A BASH_ARGV -- [$i]="$curr_arg"
+  i=$((i - 1))
+done
+unset curr_arg
+
+
+
+##---------------------------Start function_preCheckArguments-----------------##
+function function_preCheckArguments()
+{
+  if [ "$command" != "install" ]; then
+    ##-----------------------Check Arguments----------------------------------##
+    i=0
+    #for (( i=$((BASH_ARGC - 1)); $((i >= 0)); i=$((i - 1)) )); do
+    #for (( i=$((-1)); $((i >= -BASH_ARGC)); i=$((i - 1)) )); do
+    until test "$((i > -BASH_ARGC))" == "0"; do
+      i=$((i - 1))
+      curr_arg="${BASH_ARGV[$i]}"
+      if [ "$(echo "$curr_arg" | head -c 2)" == "--" ];then
+        case "$curr_arg" in
+        ##-------------------Config Path--------------------------------------##
+        --config)
+          echo "WARNING: Do not change the default config path."
+          i=$((i - 1))
+          config_path="${BASH_ARGV[$i]}"
+          break
+        ;;
+        ##-------------------System User Home---------------------------------##
+        --home)
+          echo "WARNING: Do not change the default home path."
+          i=$((i - 1))
+          arg_home="${BASH_ARGV[$i]}"
+        ;;
+        esac
+      fi
+    done
+
+
+    if [ -z "$config_path" ]; then
+      config_path="$home/linuxonandroid"
+    fi
+
+
+    #Froyo's apps-to-SD makes use of special loopback devices /dev/block/dm-#
+    #Each program installed to SD uses up a normal loopback device.
+    #We therefore have to make our own with a minor number that we hope
+    #users will never reach.
+    #Our mount will break if there are $loopno apps installed to SD
+
+    if [ -e "$config_path/config.default" ]; then
+      . "$config_path/config.default"
+    fi
+    if [ -e "$config_path/config.$system" ]; then
+      . "$config_path/config.$system"
+    fi
+  fi
+} #end Fct
+
+
+
+##---------------------------Start function_checkArguments--------------------##
+function function_checkArguments()
+{
+  ##-------------------------Check Arguments----------------------------------##
+  i=0
+  arg_rest_count=0
+  #for (( i=$((BASH_ARGC - 1)); $((i >= 0)); i=$((i - 1)) )); do
+  #for (( i=$((-1)); $((i >= -BASH_ARGC)); i=$((i - 1)) )); do
+  until test "$((i > -BASH_ARGC))" == "0"; do
+    i=$((i - 1))
+    curr_arg="${BASH_ARGV[$i]}"
+    if [ -z "$curr_arg" ]; then
+      :
+    elif [ "$curr_arg" == "-h" ] || [ "$curr_arg" == "--help" ]; then
+      arg_help=true
+      break
+    #elif [ "$(echo "$curr_arg" | head -c 2)" == "--" ];then
+    elif echo "$curr_arg" | grep -qxE -e '--[a-zA-Z][a-zA-Z\-\_]+';then
+      case "$(echo "$curr_arg" | grep -oE -e '--[a-zA-Z][a-zA-Z\-\_]+')" in
+      ##---------------------Architecture-------------------------------------##
+      #--android)
+      #  arg_android="true"
+      #;;
+      ##---------------------Architecture-------------------------------------##
+      --architecture)
+        i=$((i - 1))
+        architecture="${BASH_ARGV[$i]}"
+        arg_arch="true"
+      ;;
+      ##---------------------Install Path of linux Script---------------------##
+      --bin)
+        i=$((i - 1))
+        arg_bin="${BASH_ARGV[$i]}"
+      ;;
+      ##---------------------Config Path--------------------------------------##
+      --config)
+        echo "WARNING: Do not change the default config path."
+        i=$((i - 1))
+        config_path="${BASH_ARGV[$i]}"
+      ;;
+      ##---------------------Initialize---------------------------------------##
+      --force)
+        arg_force="true"
+      ;;
+      ##---------------------System User Home---------------------------------##
+      --home)
+        echo "WARNING: home"
+        i=$((i - 1))
+        arg_home="${BASH_ARGV[$i]}"
+      ;;
+      ##---------------------Image Path---------------------------------------##
+      --img)
+        i=$((i - 1))
+        img="${BASH_ARGV[$i]}"
+        arg_img="true"
+      ;;
+      ##---------------------Initialize---------------------------------------##
+      --init)
+        arg_init="true"
+      ;;
+      ##---------------------Mount Path---------------------------------------##
+      --mnt)
+        i=$((i - 1))
+        mnt="${BASH_ARGV[$i]}"
+        arg_mnt="true"
+      ;;
+      ##---------------------Mount Path---------------------------------------##
+      --mnt-options)
+        i=$((i - 1))
+        imgoptions="${BASH_ARGV[$i]}"
+        arg_imgoptions="true"
+      ;;
+      ##---------------------Use native mount---------------------------------##
+      --native)
+        native="true"
+      ;;
+      ##---------------------Use native mount---------------------------------##
+      --noimage)
+        arg_noimage="true"
+      ;;
+      ##---------------------Use native mount---------------------------------##
+      --partition)
+        i=$((i - 1))
+        partition="${BASH_ARGV[$i]}"
+        arg_partition="true"
+      ;;
+      ##---------------------System PATH--------------------------------------##
+      --path)
+        i=$((i - 1))
+        arg_path_abs="${BASH_ARGV[$i]}"
+      ;;
+      ##---------------------System PATH--------------------------------------##
+      --post-path)
+        i=$((i - 1))
+        arg_path_post="${BASH_ARGV[$i]}"
+      ;;
+      ##---------------------System PATH--------------------------------------##
+      --pre-path)
+        i=$((i - 1))
+        arg_path_pre="${BASH_ARGV[$i]}"
+      ;;
+      ##---------------------System Name--------------------------------------##
+      --refresh)
+        arg_refresh="true"
+      ;;
+      ##---------------------System Name--------------------------------------##
+      --system)
+        if [ "$command" == "install" ]; then
+          # The script must be installed or renamed to work correctly
+          arg_system="true"
+          i=$((i - 1))
+          system="${BASH_ARGV[$i]}"
+        fi
+      ;;
+      ##---------------------System TERM--------------------------------------##
+      --term)
+        i=$((i - 1))
+        arg_term="${BASH_ARGV[$i]}"
+      ;;
+      ##---------------------System Name--------------------------------------##
+      --type)
+        # The script must be installed or renamed to work correctly
+        arg_imgtype="true"
+        i=$((i - 1))
+        imgtype="${BASH_ARGV[$i]}"
+      ;;
+      ##---------------------Unknown Argument---------------------------------##
+      #*)
+      #  echo -e "$0: unknown argument: $curr_arg\n"
+      #  "$0" -h
+      #  exit 2 #TODO set the standard return value for this case
+      #;;
+      esac
+    elif echo "$curr_arg" | grep -qxE -e '--[a-zA-Z][a-zA-Z\-\_]+=';then
+      case "$(echo "$curr_arg" | grep -oE -e '--[a-zA-Z][a-zA-Z\-\_]+=')" in
+      ##---------------------Port for SSH-------------------------------------##
+      --ssh-port=)
+        sshport="$(echo "$curr_arg" | awk -F "=" '{print $2}')"
+        if ! echo "$sshport" | grep -qE -e '^[0-6]?[0-9]?[0-9]?[0-9]?[0-9]'; then # FIXME this is not correct
+          echo "ERROR: Wrong port."
+          exit 2
+        fi
+        if [ "$((sshport > 0 && sshport <= 65535))" == "1" ]; then
+          echo "ERROR: Wrong port."
+          exit 2
+        fi
+      ;;
+      ##---------------------Port for VNC-------------------------------------##
+      --vnc-port=)
+        vncport="$(echo "$curr_arg" | awk -F "=" '{print $2}')"
+        if ! echo "$vncport" | grep -qE -e '^[0-6]?[0-9]?[0-9]?[0-9]?[0-9]'; then # FIXME this is not correct
+          echo "ERROR: Wrong port."
+          exit 2
+        fi
+        if [ "$((vncport > 0 && vncport <= 65535))" == "1" ]; then
+          echo "ERROR: Wrong port."
+          exit 2
+        fi
+      ;;
+      esac
+    #elif [ "$(echo -"$curr_arg" | head -c 2)" == "--" ];then
+    elif echo -"$curr_arg" | grep -qxE -e '--[a-zA-Z]+';then
+      #args="$(echo -"$curr_arg" | awk 'BEGIN{FS=""}{ for (i = 3; i <= NF; ++i) print $i; }')"
+      args="$(echo -"$curr_arg" | grep -oE -e '--[a-zA-Z]+')"
+
+      for arg in `echo -e "$args"`; do
+        case "$arg" in
+      ##---------------------System Name--------------------------------------##
+        s)
+          arg_system="true"
+          i=$((i - 1))
+          system="${BASH_ARGV[$i]}"
+        ;;
+        ##-------------------Unknown------------------------------------------##
+        #*)
+        #  echo -e "$0: unknown argument: -$arg\n"
+        #  "$0" -h
+        #  exit 2 #TODO set the standard return value for this case
+        #;;
+        esac
+      done
+    else
+      ##---------------------Unknown Argument---------------------------------##
+      set +A arg_rest -- [$arg_rest_count]="$curr_arg"
+      arg_rest_count=$((arg_rest_count + 1))
+      #echo -e "$0: unknown argument: $curr_arg\n"
+      #"$0" -h
+      #exit 2 #TODO set the standard return value for this case
+    fi
+  done
+} #end Fct
+
+
+
+##---------------------------Start function_help------------------------------##
+function function_help()
+{
+  case "${arg_rest[1]}" in
+    "")
+
+    ;;
+    mount)
+      echo "Mount the Image and system-parts."
+    ;;
+    mountsd)
+      echo "Make the SD card accessible to the chroot environment."
+    ;;
+    *)
+      echo "Command unknown"
+    ;;
+  esac
+} #end Fct
+
