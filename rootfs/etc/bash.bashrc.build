@@ -1,4 +1,7 @@
 #!/bin/bash
+# See the file "license.terms" for information on usage and redistribution of
+# this file, and for a DISCLAIMER OF ALL WARRANTIES.
+
 [[ -z "$target_file" ]] && exit
 
 if [ "$bashrc_mode" == "normal" ] || [ "$bashrc_mode" == "reduced" ]; then
@@ -34,7 +37,7 @@ fi
 
 # don't put duplicate lines in the history. See bash(1) for more options
 # ... or force ignoredups and ignorespace
-HISTCONTROL=ignoredups:ignorespace
+HISTCONTROL=ignoredups:ignorespace #:erasedups
 
 # append to the history file, don't overwrite it
 shopt -s histappend

@@ -84,6 +84,7 @@ complete -F _apt_get_mod apt-install &&
 complete -F _apt_get_mod apt-purge &&
 complete -F _apt_get_mod apt-remove &&
 complete -F _apt_get_mod apt-source &&
+complete -F _apt_get_mod apt-trivial &&
 complete -F _apt_get_mod apt-update &&
 complete -F _apt_get_mod apt-upgrade
 

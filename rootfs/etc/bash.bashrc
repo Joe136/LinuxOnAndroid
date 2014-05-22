@@ -3,6 +3,9 @@
 # the second line is for detecting this script as part of the project
 # if you want that it wasn't changed, add the keyword 'exclude'
 
+# See the file "license.terms" for information on usage and redistribution of
+# this file, and for a DISCLAIMER OF ALL WARRANTIES.
+
 # see /usr/share/doc/bash/examples/startup-files (in the package bash-doc)
 # for examples
 
@@ -11,7 +14,7 @@
 
 # don't put duplicate lines in the history. See bash(1) for more options
 # ... or force ignoredups and ignorespace
-HISTCONTROL=ignoredups:ignorespace
+HISTCONTROL=ignoredups:ignorespace #:erasedups
 HISTFILE=~/.bash_history
 
 # append to the history file, don't overwrite it
@@ -53,7 +56,7 @@ function reset_ps1 {
     [[ $'\n'${match_lhs} == *$'\n'"TERM "${safe_term}* ]] && use_color=true
 
     ssh_extern="$(echo $SSH_CONNECTION | awk '{ print $3 }')"
-    [[ -z "$ssh_extern" ]] && ssh_extern='\h'
+    [[ -z "$ssh_extern" ]] && ssh_extern="$(hostname)"
 
     if ${use_color} ; then
             # Enable colors for ls, etc.  Prefer ~/.dir_colors #64489
@@ -67,10 +70,8 @@ function reset_ps1 {
 
             if [[ ${EUID} == 0 ]] ; then
                     PS1="${debian_chroot:+\[\033[01;33m\]($debian_chroot)}"'\[\033[01;31m\]\u\[\033[01;32m\]@'"$ssh_extern"'\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ '
-            #        PS1='${debian_chroot:+($debian_chroot)}\[\033[01;31m\]\h\[\033[01;34m\] \W \$\[\033[00m\] '
             else
                     PS1="${debian_chroot:+\[\033[01;33m\]($debian_chroot)}"'\[\033[01;32m\]\u@'"$ssh_extern"'\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ '
-            #        PS1='${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[01;34m\] \w \$\[\033[00m\] '
             fi
 
             #alias ls='ls --color=auto'
@@ -120,10 +121,10 @@ if [ -x "/usr/lib/command-not-found" -o -x "/usr/share/command-not-found/command
     function command_not_found_handle {
         # check because c-n-f could've been removed in the meantime
         if [ -x "/usr/lib/command-not-found" ]; then
-            /usr/bin/python /usr/lib/command-not-found -- "$1"
+            /usr/lib/command-not-found -- "$1"
             return $?
         elif [ -x "/usr/share/command-not-found/command-not-found" ]; then
-            /usr/bin/python /usr/share/command-not-found/command-not-found -- "$1"
+            /usr/share/command-not-found/command-not-found -- "$1"
             return $?
         else
             printf "%s: command not found\n" "$1" >&2

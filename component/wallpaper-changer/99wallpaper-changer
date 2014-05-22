@@ -1,3 +1,5 @@
 #!/system/bin/sh
+# See the file "license.terms" for information on usage and redistribution of
+# this file, and for a DISCLAIMER OF ALL WARRANTIES.
 
-start-stop-daemon --start --background --quiet --oknodo --exec /system/xbin/wallpaper-changer -- --waitfirst 90 --time 8h --directory /mnt/sdcard/zedge/wallpapers/
+start-stop-daemon --start --background --quiet --oknodo --exec /system/xbin/wallpaper-changer -- --waitfirst 90 --time 8h --directory /mnt/sdcard/zedge/wallpapers

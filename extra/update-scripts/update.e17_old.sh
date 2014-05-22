@@ -5,6 +5,11 @@
 #git svn pull
 #svn co http://svn.enlightenment.org/svn/e/trunk .
 
+E_ROOT_DIR=`pwd`
+
+
+
+##---------------------------Start check--------------------------------------##
 check()
 {
   if [ "$?" != "0" ]; then
@@ -13,8 +18,24 @@ check()
     exit 1
   fi
 }
+##---------------------------End check----------------------------------------##
 
-if [ "$1" == "noupdate" ] || ( [ -f timestamp ] && [ "$((`date +%s` - `cat timestamp` <= 82800))" == "1" ] ); then
+
+
+##---------------------------Print Config-------------------------------------##
+[[ -n "$NO_PRIMARY" ]] && echo "## No Primary Modules"
+[[ -n "$NO_CXX" ]] && echo "## No CXX Modules"
+[[ -n "$WAIT" ]] && echo "## Wait after configure"
+[[ "$WAIT" == "break" ]] && echo "## No Compilation"
+
+
+
+##---------------------------Update-------------------------------------------##
+if [ "$1" == "init" ]; then
+  #svn co http://svn.enlightenment.org/svn/e/trunk .
+  #git clone ??? ./
+  :
+elif [ "$1" == "noupdate" ] || ( [ -f timestamp ] && [ "$((`date +%s` - `cat timestamp` <= 82800))" == "1" ] ); then
   echo "Updated short time ago"
   echo ""
 #else
@@ -23,13 +44,21 @@ if [ "$1" == "noupdate" ] || ( [ -f timestamp ] && [ "$((`date +%s` - `cat times
   #echo -n "`date +%s`" > timestamp
 fi
 
-mkdir -p /usr/local/lib/pkgconfig
+
+
+##---------------------------Prepare------------------------------------------##
+mkdir -p build
+mkdir -p "/usr/local" && mkdir -p "/usr/local/lib" && mkdir -p "/usr/local/lib/pkgconfig"
+export PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH"
 export LD_LIBRARY_PATH="/usr/local/lib/:/lib/:/usr/lib/:$LD_LIBRARY_PATH"
 
-#Compile the primary part
-make -f Makefile.linux all INSTALLROOT=/usr/local; check
 
-#Install all primary parts
+
+##---------------------------Primary Modules----------------------------------##
+#Compile the primary part
+#make -f Makefile.linux all INSTALLROOT=/usr/local; check
+
+#Compile/Install all primary parts
 PKG="efl
      eio
      edje
@@ -48,15 +77,25 @@ PKG="efl
      e
      clouseau"
 
-for pkg in $PKG; do
-make -f Makefile.linux $pkg-install INSTALLROOT=/usr/local; check
-done
+if [ -z "$NO_PRIMARY" ]; then
+  echo "## ---------- Primary Modules ---------- ##"
+  for pkg in $PKG; do
+    echo "## ----------$pkg---------- ##"
+    [[ "$WAIT" != "" ]] && make -f Makefile.linux "$E_ROOT_DIR/build/$pkg/stamps/configure" INSTALLROOT=/usr/local && check && echo "---WAIT---" && read
+    if [[ "$WAIT" != "break" ]]; then
+      echo point1
+      make -f Makefile.linux $pkg-compile INSTALLROOT=/usr/local; check
+    else
+      echo "---DO_NOT_MAKE---"
+    fi
+  done
+fi
 
 unset PKG
 
 
 
-#BINDINGS/cxx/
+#----------------------------CXX Modules--------------------------------------##
 PKG="eflxx
      einaxx
      evasxx
@@ -66,13 +105,27 @@ PKG="eflxx
      emotionxx
      elementaryxx
      eflxx_examples"
-for pkg in $PKG; do
-  cd "BINDINGS/cxx/$pkg"
-  sh autogen.sh prefix=/usr/local; check
-  make prefix=/usr/local; check
-  make install prefix=/usr/local; check
-  cd - > /dev/null 2>&1
-done
+
+if [ -z "$NO_CXX" ]; then
+  echo "## ---------- CXX Modules ---------- ##"
+  for pkg in $PKG; do
+    echo "## ----------$pkg---------- ##"
+    cd "BINDINGS/cxx/$pkg"
+    #sh autogen.sh --prefix=/usr/local "--build=$E_ROOT_DIR/build"; check
+    sh autogen.sh --prefix=/usr/local; check
+    [[ "$WAIT" != "" ]] && echo "---WAIT---" && read
+    if [[ "$WAIT" != "break" ]]; then
+      make; check
+      make install; check
+    else
+      echo "---DO_NOT_MAKE---"
+    fi
+    cd - > /dev/null 2>&1
+  done
+fi
+
+unset PKG
+
 
 #make -f Makefile.update eflxx-compile INSTALLROOT=/usr/local PACKAGE=eflxx PACKAGEPATH=BINDINGS/cxx/; check
 #make -f Makefile.update einaxx-compile INSTALLROOT=/usr/local PACKAGE=einaxx PACKAGEPATH=BINDINGS/cxx/; check
@@ -86,3 +139,7 @@ done
 #...
 #make -f Makefile.update -compile INSTALLROOT=/usr/local PACKAGE= PACKAGEPATH=
 #check
+
+echo ""
+echo "[DONE]"
+

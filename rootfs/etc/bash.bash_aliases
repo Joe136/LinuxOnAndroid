@@ -4,13 +4,12 @@
 # if you want that it wasn't changed, add the keyword 'exclude'
 # if you want that only new aliases was added, add the keyword 'update'
 
-
 # See the file "license.terms" for information on usage and redistribution of
 # this file, and for a DISCLAIMER OF ALL WARRANTIES.
 
 # aliases for APT
 alias apt-autoclean='apt-get autoclean'
-alias apt-autoremove='apt-get autoremove'
+alias apt-autoremove='apt-get autoremove --purge'
 alias apt-build-dep='apt-get build-dep'
 alias apt-changelog='apt-get changelog'
 alias apt-check='apt-get check'
@@ -26,6 +25,7 @@ alias apt-search-names='apt-cache search --names-only'
 alias apt-show='apt-cache show'
 alias apt-showpkg='apt-cache showpkg'
 alias apt-source='apt-get source'
+alias apt-trivial='apt-get install --trivial-only'
 alias apt-update='apt-get update'
 alias apt-upgrade='apt-get upgrade'
 
@@ -72,7 +72,10 @@ alias lsd="ls -Ad"
 
 
 # aliases for cd
-alias ..="cd .."
+alias    ..="cd .."
+alias   ...="cd ../.."
+alias  ....="cd ../../.."
+alias .....="cd ../../../.."
 alias cd-="cd - > /dev/null"
 
 
@@ -138,3 +141,5 @@ alias free="free; echo \"\"; cat /proc/swaps"
 alias newscreen="screen -dmS linux -s /usr/bin/tmux"
 alias gita='gitk --all'
 alias env='env | sort | less -S'
+alias var='(set -o posix ; set) | sort | less -S'
+alias cgrep='ack-grep'
