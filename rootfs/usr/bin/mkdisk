@@ -24,11 +24,11 @@ fi
 #  
 #done
 
-if $debug; then
-DEBUG="echo"
-else
-DEBUG="#" #doesn't work
-fi
+#if $debug; then
+#DEBUG="echo"
+#else
+#DEBUG="#" #doesn't work
+#fi
 
 img="$1.img"
 target="$2"
@@ -60,6 +60,7 @@ if [ "$encrypt" == "true" ]; then
   echo "Image created"
   echo "Mount encrypted image"
   truecrypt "--keyfiles=$HOME/.truecrypt/$img.key" "$img" "$target"
+  exit
 fi
 
 if [ "$4" == "-mk" ]; then
