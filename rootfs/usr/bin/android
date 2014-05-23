@@ -35,10 +35,16 @@ restart)
    echo "restart" | nc localhost 4242
 
 ;;
+app)
+   if [ "$2" == "list" ]; then
+         chroot-break -c /system/bin/mksh /system/bin/pm list packages "$3"
+   fi
+
+;;
 kill)
    if [ -n "$2" ]; then
       if [ "$2" == "-f" ]; then
-         chroot-break -c /system/bin/mksh /system/bin/am kill "$2"
+         chroot-break -c /system/bin/mksh /system/bin/am kill "$3"
       else
          chroot-break -c /system/bin/mksh /system/bin/am force-stop "$2"
       fi
@@ -151,7 +157,7 @@ music)
 
 ;;
 *)
-   echo "`basename $0` boost|cpu|dumpsys|free|info|kill|music|restart|shell|start|status|stop|wlan|wpnext" 2> /dev/null
+   echo "`basename $0` app|boost|cpu|dumpsys|free|info|kill|music|restart|shell|start|status|stop|wlan|wpnext" 2> /dev/null
 
 ;;
 esac

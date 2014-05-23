@@ -2,11 +2,15 @@
 # See the file "license.terms" for information on usage and redistribution of
 # this file, and for a DISCLAIMER OF ALL WARRANTIES.
 
-_update_sh()
+function function_update_sh()
 {
+   local comm
+   local prev
+
   COMPREPLY=()
   comm=${COMP_WORDS[1]}
   prev=${COMP_WORDS[COMP_CWORD-1]}
+
   if [[ "$COMP_CWORD" == "1" ]]; then
     COMPREPLY=($(compgen -W '--noupdate --init' -- $comm ) )
   elif [[ "$prev" == ">" || "$prev" == "2>" ]]; then
@@ -15,4 +19,4 @@ _update_sh()
     COMPREPLY=()
   fi
 }
-complete -F _update_sh update.sh
+complete -F function_update_sh update.sh

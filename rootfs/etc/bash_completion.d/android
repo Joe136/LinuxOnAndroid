@@ -2,25 +2,50 @@
 # See the file "license.terms" for information on usage and redistribution of
 # this file, and for a DISCLAIMER OF ALL WARRANTIES.
 
-_android()
+function function_android()
 {
-  local cur
-  COMPREPLY=()
-  comm=${COMP_WORDS[1]}
-  subcomm=${COMP_WORDS[2]}
-  cur=${COMP_WORDS[COMP_CWORD]}
-  if [[ "$COMP_CWORD" == "1" ]]; then
-    COMPREPLY=($(compgen -W 'start stop restart kill dumpsys boost wlan shell stats info cpu free wpnext music' -- $cur ) )
-  elif [[ "$COMP_CWORD" == "2" && "$comm" == "dumpsys" ]]; then
-    COMPREPLY=($(compgen -W 'battery' -- $cur) )
-  elif [[ "$COMP_CWORD" == "2" && "$comm" == "wlan" ]]; then
-    COMPREPLY=($(compgen -W 'power ping' -- $cur) )
-  elif [[ "$COMP_CWORD" == "2" && "$comm" == "music" ]]; then
-    COMPREPLY=($(compgen -W 'onlineradio mortplayer' -- $cur) )
-  elif [[ "$COMP_CWORD" == "3" && "$comm" == "music" && ( "$subcomm" == "onlineradio" || "mortplayer" ) ]]; then
-    COMPREPLY=($(compgen -W 'play pause stop' -- $cur) )
-  else
-    COMPREPLY=()
-  fi
+   local curr
+   local command
+
+   COMPREPLY=()
+   curr=${COMP_WORDS[COMP_CWORD]}
+   command=${COMP_WORDS[1]}
+
+   if [[ "$COMP_CWORD" == "1" ]]; then
+      COMPREPLY=($(compgen -W 'start stop restart app kill dumpsys boost wlan shell stats info cpu free wpnext music' -- $curr ) )
+
+   else
+      case "$command" in
+      dumpsys)
+         if [[ "$COMP_CWORD" == "2" ]]; then
+            COMPREPLY=($(compgen -W 'battery' -- $curr) )
+         fi
+
+      ;;
+      wlan)
+         if [[ "$COMP_CWORD" == "2" ]]; then
+            COMPREPLY=($(compgen -W 'power ping' -- $curr) )
+         fi
+
+      ;;
+      music)
+         if [[ "$COMP_CWORD" == "2" ]]; then
+            COMPREPLY=($(compgen -W 'onlineradio mortplayer' -- $curr) )
+         elif [[ "$COMP_CWORD" == "3" ]]; then
+            COMPREPLY=($(compgen -W 'play pause stop' -- $curr) )
+         fi
+
+      ;;
+      app)
+         if [[ "$COMP_CWORD" == "2" ]]; then
+            COMPREPLY=($(compgen -W 'list' -- $curr) )
+         fi
+
+      ;;
+      *)
+         COMPREPLY=()
+      ;;
+      esac
+   fi
 }
-complete -F _android android
+complete -F function_android android
