@@ -26,10 +26,10 @@ WARNINGS     = -Wall -Werror $(NOWARNINGS)
 
 ## 
 INCLUDES     = 
-CPPFLAGS     = -std=c++11 -march=native -O3 -flto -fPIC -DLINUX -DVERSION=\"$(MAJOR).$(MINOR).$(PATCH)\" $(WARNINGS) $(INCLUDES)
-CCFLAGS      = -std=gnu99 -march=native -O3       -fPIC -DLINUX -DVERSION=\"$(MAJOR).$(MINOR).$(PATCH)\" $(WARNINGS) $(INCLUDES)
-CFLAGS       = -std=gnu99 -march=native -O3       -fPIC -DLINUX -DVERSION=\"$(MAJOR).$(MINOR).$(PATCH)\" $(WARNINGS) $(INCLUDES)
-LDFLAGS      =            -march=native -O3 -static -Wl,-Bstatic  #-flto
+CPPFLAGS     = -std=c++11 -march=native -O3 -flto -fPIC -fdiagnostics-color=always -DLINUX -DVERSION=\"$(MAJOR).$(MINOR).$(PATCH)\" $(WARNINGS) $(INCLUDES)
+CCFLAGS      = -std=gnu99 -march=native -O3       -fPIC -fdiagnostics-color=always -DLINUX -DVERSION=\"$(MAJOR).$(MINOR).$(PATCH)\" $(WARNINGS) $(INCLUDES)
+CFLAGS       = -std=gnu99 -march=native -O3       -fPIC -fdiagnostics-color=always -DLINUX -DVERSION=\"$(MAJOR).$(MINOR).$(PATCH)\" $(WARNINGS) $(INCLUDES)
+LDFLAGS      =            -march=native -O3             -fdiagnostics-color=always -static -Wl,-Bstatic  #-flto
 
 ## Get all .c, .cc, .cpp files and convert suffix to .o
 OBJECTS     += $(shell ls *.cpp > /dev/null 2>&1 && ls *.cpp 2> /dev/null | xargs basename -s cpp | xargs -I {} echo -n "{}opp ")
