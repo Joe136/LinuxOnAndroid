@@ -11,12 +11,12 @@ gsm_iface="rmnet0"
 
 ##---------------------------Start cpu_stats-----------------------------##
 function cpu_stats () {
-  echo -n "Current Governor: ";      cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
-  echo -n "Current I/O Scheduler: "; cat /sys/block/mmcblk0/queue/scheduler | grep -Eoe "\[[a-zA-Z0-9]*\]" | grep -Eoe "[a-zA-Z0-9]*"
-  echo -n "Load Average: ";          cat /proc/loadavg
-  echo -n "Current CPU Frequency: "; cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq
-  echo -n "Minimum CPU Frequency: "; cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq
-  echo -n "Maximum CPU Frequency: "; cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq
+   echo -n "Current Governor: ";      cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
+   echo -n "Current I/O Scheduler: "; cat /sys/block/mmcblk0/queue/scheduler | grep -Eoe "\[[a-zA-Z0-9]*\]" | grep -Eoe "[a-zA-Z0-9]*"
+   echo -n "Load Average: ";          cat /proc/loadavg
+   echo -n "Current CPU Frequency: "; cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq
+   echo -n "Minimum CPU Frequency: "; cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq
+   echo -n "Maximum CPU Frequency: "; cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq
 }
 
 
@@ -24,98 +24,111 @@ function cpu_stats () {
 ##---------------------------Main Loop-----------------------------------##
 case "$1" in
 start)
-  echo "start" | nc localhost 4242
+   echo "start" | nc localhost 4242
 
 ;;
 stop)
-  echo "stop" | nc localhost 4242
+   echo "stop" | nc localhost 4242
 
 ;;
 restart)
-  echo "restart" | nc localhost 4242
+   echo "restart" | nc localhost 4242
+
+;;
+kill)
+   if [ -n "$2" ]; then
+      if [ "$2" == "-f" ]; then
+         chroot-break -c /system/bin/mksh /system/bin/am kill "$2"
+      else
+         chroot-break -c /system/bin/mksh /system/bin/am force-stop "$2"
+      fi
+   fi
 
 ;;
 dumpsys)
-  echo "dumpsys" | nc localhost 4242
-  sleep 2
-  #nc -l -p 4243 &
-  echo "$2" | nc localhost 4242 && nc -l -p 4243
+   echo "error: 'dumpsys' is deprecated and not in use anymore." >&2
+   echo "info: Use 'chroot-break -c /system/bin/dumpsys <args>' instead" >&2
 
+#   echo "dumpsys" | nc localhost 4242
+#   sleep 2
+#   #nc -l -p 4243 &
+#   echo "$2" | nc localhost 4242 && nc -l -p 4243
+#
 ;;
 boost)
-  echo "boost" | nc localhost 4242
+   echo "boost" | nc localhost 4242
 
 ;;
 wlan)
-  if [ "$2" == "power" ]; then
-    [[ "$3" == "off" ]] && iwconfig "$wlan_iface" power off
-    [[ "$3" == "on" ]]  && iwconfig "$wlan_iface" power on
-  elif [ "$2" == "ping" ]; then
-    [[ "$3" == "off" ]] && echo 1 > /proc/sys/net/ipv4/icmp_echo_ignore_all
-    [[ "$3" == "on" ]]  && echo 0 > /proc/sys/net/ipv4/icmp_echo_ignore_all
-  else
-    echo "`basename $0` wlan power|ping on|off" 2> /dev/null
-  fi
+   if [ "$2" == "power" ]; then
+      [[ "$3" == "off" ]] && iwconfig "$wlan_iface" power off
+      [[ "$3" == "on" ]]  && iwconfig "$wlan_iface" power on
+   elif [ "$2" == "ping" ]; then
+      [[ "$3" == "off" ]] && echo 1 > /proc/sys/net/ipv4/icmp_echo_ignore_all
+      [[ "$3" == "on" ]]  && echo 0 > /proc/sys/net/ipv4/icmp_echo_ignore_all
+   else
+      echo "`basename $0` wlan power|ping on|off" 2> /dev/null
+   fi
 
 ;;
 shell)
-  echo "shell" | nc localhost 4242
-  read pass
-  accept=$(echo "$pass" | nc localhost 4242)
-  echo "$accept"
-  if [ "$accept" == "true" ]; then
-    nc localhost 4242
-  fi
+   echo "shell" | nc localhost 4242
+   read pass
+   accept=$(echo "$pass" | nc localhost 4242)
+   echo "$accept"
+   if [ "$accept" == "true" ]; then
+      nc localhost 4242
+   fi
 
 ;;
 stats|info)
-  ifconfig "$wlan_iface" | head -n 3 && ifconfig "$wlan_iface" | tail -n 2 | head -n 1
-  echo ""
-  iwconfig "$wlan_iface" | head -n 3 && iwconfig "$wlan_iface" | tail -n 5 | head -n 2
-  echo ""
-  ifconfig "$gsm_iface" | head -n 3 && ifconfig "$gsm_iface" | tail -n 2 | head -n 1
-  echo ""
-  [[ -e "/usr/bin/battery-notification" ]] && echo -n "Battery Level: " && battery-notification --level && echo ""
-  echo -n "Response to Ping: "
-  if [ "$(cat /proc/sys/net/ipv4/icmp_echo_ignore_all)" == "1" ]; then echo "off"; else echo "on"; fi
-  cpu_stats
+   ifconfig "$wlan_iface" | head -n 3 && ifconfig "$wlan_iface" | tail -n 2 | head -n 1
+   echo ""
+   iwconfig "$wlan_iface" | head -n 3 && iwconfig "$wlan_iface" | tail -n 5 | head -n 2
+   echo ""
+   ifconfig "$gsm_iface" | head -n 3 && ifconfig "$gsm_iface" | tail -n 2 | head -n 1
+   echo ""
+   [[ -e "/usr/bin/battery-notification" ]] && echo -n "Battery Level: " && battery-notification --level && echo ""
+   echo -n "Response to Ping: "
+   if [ "$(cat /proc/sys/net/ipv4/icmp_echo_ignore_all)" == "1" ]; then echo "off"; else echo "on"; fi
+   cpu_stats
 
 ;;
 cpu)
-  cpu_stats
+   cpu_stats
 
 ;;
 free)
-  free;
-  echo "";
-  cat /proc/swaps
-  echo "";
+   free;
+   echo "";
+   cat /proc/swaps
+   echo "";
 
-  # Get current swap usage for all running processes
-  # Erik Ljungstrom 27/05/2011
+   # Get current swap usage for all running processes
+   # Erik Ljungstrom 27/05/2011
 
-  SUM=0
-  OVERALL=0
+   SUM=0
+   OVERALL=0
 
-  for DIR in `find /proc/ -maxdepth 1 -type d | egrep "^/proc/[0-9]"` ; do
-    PID=`echo $DIR | cut -d / -f 3`
-    PROGNAME=`(cat $DIR/cmdline 2> /dev/null || ps -p $PID -o comm --no-headers)`
+   for DIR in `find /proc/ -maxdepth 1 -type d | egrep "^/proc/[0-9]"` ; do
+      PID=`echo $DIR | cut -d / -f 3`
+      PROGNAME=`(cat $DIR/cmdline 2> /dev/null || ps -p $PID -o comm --no-headers)`
 
-    for SWAP in `grep -P Swap $DIR/smaps 2> /dev/null | awk '{ print $2 }'`; do
-      let SUM=$SUM+$SWAP
-    done
+      for SWAP in `grep -P Swap $DIR/smaps 2> /dev/null | awk '{ print $2 }'`; do
+         let SUM=$SUM+$SWAP
+      done
 
-    [[ "$SUM" != "0" ]] && echo "($PID) ${PROGNAME:0:30}: swap = $SUM kB"
+      [[ "$SUM" != "0" ]] && echo "($PID) ${PROGNAME:0:30}: swap = $SUM kB"
 
-    let OVERALL=$OVERALL+$SUM
-    SUM=0
-  done
+      let OVERALL=$OVERALL+$SUM
+      SUM=0
+   done
 
-  echo "Overall swap used: $OVERALL kB"
+   echo "Overall swap used: $OVERALL kB"
 
 ;;
 wpnext)
-  wallpaper-changer --next
+   wallpaper-changer --next
 
 ;;
 music)
@@ -138,7 +151,7 @@ music)
 
 ;;
 *)
-  echo "`basename $0` boost|cpu|dumpsys|free|info|restart|shell|start|status|stop|wlan|wpnext" 2> /dev/null
+   echo "`basename $0` boost|cpu|dumpsys|free|info|kill|music|restart|shell|start|status|stop|wlan|wpnext" 2> /dev/null
 
 ;;
 esac
