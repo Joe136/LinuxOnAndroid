@@ -1,0 +1,10 @@
+*** nano~/src/Makefile.am	2014-07-03 17:21:36.000000000 +0200
+--- nano~/src/Makefile.am~	2014-07-03 17:23:13.000000000 +0200
+***************
+*** 1,5 ****
+  AM_CPPFLAGS = -DLOCALEDIR=\"$(localedir)\" -DSYSCONFDIR=\"$(sysconfdir)\"
+- LIBS = -static -Wl,-Bstatic -ldl -ltinfo -lncursesw -ltermcap
+  
+  bin_PROGRAMS = 	nano
+  nano_SOURCES =	browser.c \
+--- 1,4 ----
