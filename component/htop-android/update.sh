@@ -1,8 +1,8 @@
 #!/bin/bash
 
-path=nano
-co='svn co svn://svn.savannah.gnu.org/nano/trunk/nano ./nano'
-ud='svn update'
+path=htop
+co='git clone https://github.com/hishamhm/htop.git ./htop'
+ud='git pull origin master'
 
 
 if [ ! -d "$path" ] || ! mountpoint -q "$path"; then
@@ -30,9 +30,9 @@ if [ "$1" == "clean" ] || [ "$clean" == "true" ]; then
    make clean
 fi
 
-./configure --enable-utf8 --prefix=/system/usr --bindir=/system/xbin --sysconfdir=/system/etc && \
+./configure --prefix=/system/usr --bindir=/system/xbin --sysconfdir=/system/etc --enable-unicode --enable-openvz --enable-cgroup --enable-taskstats && \
 \
-make LIBS="-static -Wl,-Bstatic -ldl -ltinfo -lncursesw -lgpm -ltermcap" && \
+make LIBS="-static-libgcc -static -Wl,-Bstatic -ldl -ltinfo -lncursesw -lgpm -ltermcap -lm" && \
 \
 make install prefix=/proc/1/root/system/usr bindir=/proc/1/root/system/xbin sysconfdir=/proc/1/root/system/etc
 
