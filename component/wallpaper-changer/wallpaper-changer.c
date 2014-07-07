@@ -18,12 +18,13 @@
 
 
 //---------------------------Global Variables--------------------------------------//
-static bool  g_bRepeat = true;
-static bool  g_bReload = false;
-static bool  g_bNext   = false;
-static bool  g_bStatus = false;
-static bool  g_bTime   = false;
-static FILE *g_oLog    = NULL;
+static bool  g_bCurrent = false;
+static bool  g_bNext    = false;
+static bool  g_bRepeat  = true;
+static bool  g_bReload  = false;
+static bool  g_bStatus  = false;
+static bool  g_bTime    = false;
+static FILE *g_oLog     = NULL;
 
 #include "signalhandling.h"
 #include "loghandling.h"
@@ -178,6 +179,25 @@ int main (int argc, const char *argv[], const char *envp[]) {
          logFlush ();
          g_bStatus = false;
       }
+
+      if (g_bCurrent) {
+         if (argv2[2]) {
+            int pid;
+
+            if (!(pid = fork() ) ) {
+               if (g_oLog) { dup2 (fileno(g_oLog), fileno(stderr) ); /*dup2 (fileno(g_oLog), fileno(stdout) );*/ fclose (g_oLog); }
+               execvp ("/system/bin/mksh", argv2);
+               exit (1);
+            }
+
+            waitpid (pid, NULL, 0);
+         }
+
+         g_bCurrent  = false;
+         gosleep     = true;
+         continue;
+      }
+
 
       if (!g_bNext && (difftime (time (NULL), begtime) < m_oArguments.time) ) {
          continue;

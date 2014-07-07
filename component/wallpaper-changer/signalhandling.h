@@ -44,6 +44,9 @@ void catchSignal (int sigNr) {
    case SIGTERM:
       execSignal ("catched signal SIGTERM", &g_bRepeat, false);
       break;
+   case SIGSTKFLT:
+      execSignal ("catched signal SIGSTKFLT", &g_bCurrent, true);
+      break;
    default:
       printf ("\ncatched signal %i\n", sigNr); fflush (stdout);
       g_bRepeat = false;
@@ -54,14 +57,15 @@ void catchSignal (int sigNr) {
 //---------------------------Start registerSignals---------------------------------//
 void registerSignals () {
 
-   signal (SIGHUP , catchSignal);
-   signal (SIGINT , catchSignal);
-   signal (SIGQUIT, catchSignal);
-   signal (SIGTRAP, catchSignal);
-   signal (SIGUSR1, catchSignal);
-   signal (SIGUSR2, catchSignal);
-   signal (SIGALRM, catchSignal);
-   signal (SIGTERM, catchSignal);
+   signal (SIGHUP   , catchSignal);
+   signal (SIGINT   , catchSignal);
+   signal (SIGQUIT  , catchSignal);
+   signal (SIGTRAP  , catchSignal);
+   signal (SIGUSR1  , catchSignal);
+   signal (SIGUSR2  , catchSignal);
+   signal (SIGALRM  , catchSignal);
+   signal (SIGTERM  , catchSignal);
+   signal (SIGSTKFLT, catchSignal);
 
    //for (int sigNr = 1; sigNr < 32; ++sigNr) {
       //signal (sigNr, catchSignal);

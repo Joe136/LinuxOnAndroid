@@ -57,7 +57,30 @@ bool checkArguments (struct Arguments *args, int argc, const char *argv[], const
 
    for (i = 1; i < argc; ++i) {
 
-      if ( (i + 1 < argc) && (!strncmp (argv[i], "--directory", 12) ) ) {
+      if ( (!strncmp (argv[i], "--current", 10) ) ) {
+         struct stat stat_dir;
+         signal (SIGSTKFLT, nopSignal);
+
+         if (!stat ("/system/bin/mksh", &stat_dir) ) {
+            // If Android
+            char *argv2[] = {"/system/bin/mksh", "-c", "killall -16 wallpaper-changer", NULL};
+            int pid;
+
+            if (!(pid = fork() ) ) {
+               execvp ("/system/bin/mksh", argv2);
+               exit (1);
+            } else {
+               waitpid (pid, NULL, 0);
+            }
+         } else
+            // If Linux
+            system ("killall -16 wallpaper-changer");
+
+         args->breakup = true;
+         return true;
+
+      }
+      else if ( (i + 1 < argc) && (!strncmp (argv[i], "--directory", 12) ) ) {
          ++i;
          struct DirectoryEntity *directory;
          struct stat stat_dir;
@@ -105,6 +128,16 @@ bool checkArguments (struct Arguments *args, int argc, const char *argv[], const
 
          args->breakup = true;
          return true;
+
+      }
+      else if ( (i + 1 < argc) && (!strncmp (argv[i], "--nice", 7) ) ) {
+         ++i;
+         int n = atoi (argv[i]);
+         if (n < -20 || n > 19) {
+            fprintf (stderr, "warning: nice level must be between -20 and 19\n");
+            continue;
+         }
+         nice (n);
 
       }
       else if ( (!strncmp (argv[i], "--quiet", 8) ) ) {
@@ -198,18 +231,23 @@ bool checkArguments (struct Arguments *args, int argc, const char *argv[], const
          printf ("Native Wallpaper Changer Service for Android (Devices)\n");
          printf ("\n");
          printf ("Usage: wallpaper-changer <options>\n");
-         printf ("Options:\n");
-         printf ("  -h | --help                Print this help\n");
+         printf ("\n");
+         printf ("Server Options:\n");
          printf ("  --directory <directory>    Add directory to watched directories (starts the daemon mode)\n");
          printf ("  --log <logfile>            Set log file (only one file)\n");
-         printf ("  --next                     Change the wallpaper now (needs running daemon)\n");
          printf ("  --quiet                    Disables logging (except errors)\n");
          printf ("  --reload <multiplicator>   Times of WP changes until reloading the directories\n");
-         printf ("  --status                   Let the daemon print some infos\n");
          printf ("  --time <time>s|m|h|D|W|M|Y Time between WP changes (default: 2 days)\n");
          printf ("  --timeoffset <hour>        Offset for timestamps (-12 to 12)\n");
          printf ("  --verbose                  Increases log level\n");
          printf ("  --waitfirst <seconds>      Wait some time before starting (e.g. if directory is not mounted)\n");
+         printf ("  --nice <level>             Set the Nice Level of the process (-20 (best) <--> 19 (worst))\n");
+         printf ("\n");
+         printf ("Client Options:\n");
+         printf ("  -h | --help                Print this help\n");
+         printf ("  --next                     Change the wallpaper now\n");
+         printf ("  --current                  Set the current wallpaper again\n");
+         printf ("  --status                   Let the daemon print some information\n");
          printf ("\n");
          printf ("Examples:\n");
          printf ("Change WP every 6 hours: wallpaper-changer --time 6h --directory /mnt/sdcard/wallpaper --directory /mnt/sd...\n");
