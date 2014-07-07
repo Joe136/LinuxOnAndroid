@@ -134,7 +134,10 @@ enum tResult breakChrootEnv () {
 void setEnvParams () {
    //setenv("PS1", "$(precmd)$USER@$HOSTNAME:${PWD:-?} ", 1);
 
-   setenv("TERM", "linux", 1);
+   //setenv("TERM", "vt100", 1);
+   //setenv("TERM", "linux", 1);
+   //setenv("TERM", "xterm-color", 1);
+   setenv("TERM", "screen", 1);
    setenv("PATH", "/sbin:/vendor/bin:/system/sbin:/system/bin:/system/xbin", 1);
    setenv("LD_LIBRARY_PATH", "/vendor/lib:/system/lib", 1);
    setenv("ANDROID_BOOTLOGO", "1", 1);
@@ -144,13 +147,13 @@ void setEnvParams () {
    setenv("USER", "root", 1);
    setenv("ANDROID_DATA", "/data", 1);
    setenv("SD_EXT_DIRECTORY", "/sd-ext", 1);
-   setenv("MKSH", "/system/bin/sh", 1);
+   setenv("MKSH", "/system/bin/mksh", 1);
    setenv("HOME", "/data", 1);
    setenv("ASEC_MOUNTPOINT", "/mnt/asec", 1);
    setenv("HOSTNAME", "android", 1);
    setenv("BOOTCLASSPATH", "/system/framework/core.jar:/system/framework/core-junit.jar:/system/framework/bouncycastle.jar:/system/framework/ext.jar:/system/framework/framework.jar:/system/framework/android.policy.jar:/system/framework/services.jar:/system/framework/apache-xml.jar:/system/framework/filterfw.jar", 1);
    setenv("ANDROID_ROOT", "/system", 1);
-   setenv("SHEL", "/system/bin/sh", 1);
+   setenv("SHELL", "/system/bin/mksh", 1);
    setenv("ANDROID_ASSETS", "/system/app", 1);
    setenv("ANDROID_SOCKET_zygote", "9", 1);
    unsetenv("TMUX");
