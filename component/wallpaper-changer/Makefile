@@ -7,7 +7,7 @@ APP_BINARY   = wallpaper-changer
 
 MAJOR        = 0
 MINOR        = 1
-PATCH        = 3
+PATCH        = 5
 
 ## Compiler specification
 CC           = gcc
@@ -39,7 +39,7 @@ DEPENDS      = $(shell ls *.h  2> /dev/null)
 
 
 ## Libraries
-STATIC_LIBS  = 
+STATIC_LIBS  = -lpthread
 DYNAMIC_LIBS = 
 
 

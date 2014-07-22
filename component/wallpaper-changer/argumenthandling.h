@@ -47,6 +47,19 @@ struct Arguments {
 
 
 
+//---------------------------Start sendToServer------------------------------------//
+void sendToServer (char *message) {
+   if (!message) return;
+
+   struct ServerConfig sconfig;
+
+   openIPCClient  (&sconfig);
+   sendIPC        (&sconfig, message);
+   closeIPCClient (&sconfig);
+}//end Fct
+
+
+
 //---------------------------Start checkArguments----------------------------------//
 bool checkArguments (struct Arguments *args, int argc, const char *argv[], const char* envp[]) {
    int i = 0, n = 0;
@@ -58,23 +71,7 @@ bool checkArguments (struct Arguments *args, int argc, const char *argv[], const
    for (i = 1; i < argc; ++i) {
 
       if ( (!strncmp (argv[i], "--current", 10) ) ) {
-         struct stat stat_dir;
-         signal (SIGSTKFLT, nopSignal);
-
-         if (!stat ("/system/bin/mksh", &stat_dir) ) {
-            // If Android
-            char *argv2[] = {"/system/bin/mksh", "-c", "killall -16 wallpaper-changer", NULL};
-            int pid;
-
-            if (!(pid = fork() ) ) {
-               execvp ("/system/bin/mksh", argv2);
-               exit (1);
-            } else {
-               waitpid (pid, NULL, 0);
-            }
-         } else
-            // If Linux
-            system ("killall -16 wallpaper-changer");
+         sendToServer ("current");
 
          args->breakup = true;
          return true;
@@ -102,29 +99,20 @@ bool checkArguments (struct Arguments *args, int argc, const char *argv[], const
          directory->next = NULL;
 
       }
+      else if ( (!strncmp (argv[i], "--force-reload", 15) ) ) {
+         sendToServer ("reload");
+
+         args->breakup = true;
+         return true;
+
+      }
       else if ( (i + 1 < argc) && (!strncmp (argv[i], "--log", 6) ) ) {
          ++i;
          args->logfile = argv[i];
 
       }
       else if ( (!strncmp (argv[i], "--next", 7) ) ) {
-         struct stat stat_dir;
-         signal (SIGALRM, nopSignal);
-
-         if (!stat ("/system/bin/mksh", &stat_dir) ) {
-            // If Android
-            char *argv2[] = {"/system/bin/mksh", "-c", "killall -14 wallpaper-changer", NULL};
-            int pid;
-
-            if (!(pid = fork() ) ) {
-               execvp ("/system/bin/mksh", argv2);
-               exit (1);
-            } else {
-               waitpid (pid, NULL, 0);
-            }
-         } else
-            // If Linux
-            system ("killall -14 wallpaper-changer");
+         sendToServer ("next");
 
          args->breakup = true;
          return true;
@@ -151,24 +139,22 @@ bool checkArguments (struct Arguments *args, int argc, const char *argv[], const
             args->reloadmult = n;
 
       }
+      else if ( (!strncmp (argv[i], "--reset-time", 13) ) ) {
+         sendToServer ("time");
+
+         args->breakup = true;
+         return true;
+
+      }
       else if ( (!strncmp (argv[i], "--status", 9) ) ) {
-         struct stat stat_dir;
-         signal (SIGUSR2, nopSignal);
+         sendToServer ("status");
 
-         if (!stat ("/system/bin/mksh", &stat_dir) ) {
-            // If Android
-            char *argv2[] = {"/system/bin/mksh", "-c", "killall -12 wallpaper-changer", NULL};
-            int pid;
+         args->breakup = true;
+         return true;
 
-            if (!(pid = fork() ) ) {
-               execvp ("/system/bin/mksh", argv2);
-               exit (1);
-            } else {
-               waitpid (pid, NULL, 0);
-            }
-         } else
-            // If Linux
-            system ("killall -12 wallpaper-changer");
+      }
+      else if ( (!strncmp (argv[i], "--stop-server", 14) ) ) {
+         sendToServer ("exit");
 
          args->breakup = true;
          return true;
@@ -247,7 +233,10 @@ bool checkArguments (struct Arguments *args, int argc, const char *argv[], const
          printf ("  -h | --help                Print this help\n");
          printf ("  --next                     Change the wallpaper now\n");
          printf ("  --current                  Set the current wallpaper again\n");
-         printf ("  --status                   Let the daemon print some information\n");
+         printf ("  --force-reload             Let the server reload the directories\n");
+         printf ("  --reset-time               Reset the time of the server\n");
+         printf ("  --status                   Let the server print some information\n");
+         printf ("  --stop-server              Stop the server\n");
          printf ("\n");
          printf ("Examples:\n");
          printf ("Change WP every 6 hours: wallpaper-changer --time 6h --directory /mnt/sdcard/wallpaper --directory /mnt/sd...\n");
@@ -265,3 +254,25 @@ bool checkArguments (struct Arguments *args, int argc, const char *argv[], const
 
 #endif //ARGUMENTHANDLING_H
 
+/*
+         struct stat stat_dir;
+         signal (SIGSTKFLT, nopSignal);
+
+         if (!stat ("/system/bin/mksh", &stat_dir) ) {
+            // If Android
+            char *argv2[] = {"/system/bin/mksh", "-c", "killall -16 wallpaper-changer", NULL};
+            int pid;
+
+            if (!(pid = fork() ) ) {
+               execvp ("/system/bin/mksh", argv2);
+               exit (1);
+            } else {
+               waitpid (pid, NULL, 0);
+            }
+         } else
+            // If Linux
+            system ("killall -16 wallpaper-changer");
+
+         args->breakup = true;
+         return true;
+*/

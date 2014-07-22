@@ -45,7 +45,7 @@ void catchSignal (int sigNr) {
       execSignal ("catched signal SIGTERM", &g_bRepeat, false);
       break;
    case SIGSTKFLT:
-      execSignal ("catched signal SIGSTKFLT", &g_bCurrent, true);
+      //execSignal ("catched signal SIGSTKFLT", &g_bCurrent, true);
       break;
    default:
       printf ("\ncatched signal %i\n", sigNr); fflush (stdout);

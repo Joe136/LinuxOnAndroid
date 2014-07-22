@@ -2,7 +2,7 @@
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 
 
-//---------------------------Includes----------------------------------------------//
+//---------------------------Global Variables--------------------------------------//
 #include<stdio.h>
 #include<unistd.h>
 #include<stdlib.h>
@@ -10,14 +10,8 @@
 #include<sys/wait.h>
 #include<sys/ioctl.h>
 #include<linux/rtc.h>
+
 #include "wallpaper-changer.h"
-#include "argumenthandling.h"
-#include "directoryhandling.h"
-#include "randomhandling.h"
-
-
-
-//---------------------------Global Variables--------------------------------------//
 static bool  g_bCurrent = false;
 static bool  g_bNext    = false;
 static bool  g_bRepeat  = true;
@@ -26,6 +20,13 @@ static bool  g_bStatus  = false;
 static bool  g_bTime    = false;
 static FILE *g_oLog     = NULL;
 
+
+
+//---------------------------Includes----------------------------------------------//
+#include "ipchandling.h"
+#include "argumenthandling.h"
+#include "directoryhandling.h"
+#include "randomhandling.h"
 #include "signalhandling.h"
 #include "loghandling.h"
 
@@ -67,6 +68,12 @@ int main (int argc, const char *argv[], const char *envp[]) {
       m_oArguments.time = 20;
    }
 */
+
+   struct ServerConfig sconfig;
+
+   openIPCServer  (&sconfig);
+   startIPCServer (&sconfig);
+
 
    /*------------------------Verbose Output----------------------------------------*/
    struct DirectoryEntity   *directory;
@@ -190,6 +197,11 @@ int main (int argc, const char *argv[], const char *envp[]) {
                exit (1);
             }
 
+            if (m_oArguments.verbose >= 2) {
+               printf ("set wallpaper (again): %s\n", current->vector->temp1);
+               if (g_oLog) fprintf (g_oLog, "wallpaper-changer: log: set wallpaper (again): %s\n", current->vector->temp1);
+            }
+
             waitpid (pid, NULL, 0);
          }
 
@@ -278,6 +290,8 @@ int main (int argc, const char *argv[], const char *envp[]) {
    for (vectorLast = vector; vectorLast != NULL; vectorLast = vectorLast->next) {
       cleanupImageVector (&vectorLast->vector);
    }//end for
+
+   closeIPCServer (&sconfig);
 
    if (g_oLog) fclose (g_oLog);
 
