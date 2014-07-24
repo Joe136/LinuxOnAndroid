@@ -42,6 +42,7 @@ struct Arguments {
    char const             *logfile;
    int                     updatetime;
    int                     reloadmult;
+   bool                    selftest;
    bool                    breakup;
 };//end struct
 
@@ -146,6 +147,10 @@ bool checkArguments (struct Arguments *args, int argc, const char *argv[], const
          return true;
 
       }
+      else if ( (!strncmp (argv[i], "--selftest", 11) ) ) {
+         args->selftest = true;
+
+      }
       else if ( (!strncmp (argv[i], "--status", 9) ) ) {
          sendToServer ("status");
 
@@ -202,7 +207,8 @@ bool checkArguments (struct Arguments *args, int argc, const char *argv[], const
 
       }
       else if ( (!strncmp (argv[i], "--verbose", 10) ) ) {
-         ++args->verbose;
+         if (args->verbose)   // Only if not quiet
+            ++args->verbose;
 
       }
       else if ( (i + 1 < argc) && (!strncmp (argv[i], "--waitfirst", 12) ) ) {
@@ -221,11 +227,12 @@ bool checkArguments (struct Arguments *args, int argc, const char *argv[], const
          printf ("Server Options:\n");
          printf ("  --directory <directory>    Add directory to watched directories (starts the daemon mode)\n");
          printf ("  --log <logfile>            Set log file (only one file)\n");
+         printf ("  --verbose                  Increases log level\n");
          printf ("  --quiet                    Disables logging (except errors)\n");
-         printf ("  --reload <multiplicator>   Times of WP changes until reloading the directories\n");
+         printf ("  --selftest                 Start selftest instead real work\n");
+         printf ("  --reload <multiplier>      Times of WP changes until reloading the directories\n");
          printf ("  --time <time>s|m|h|D|W|M|Y Time between WP changes (default: 2 days)\n");
          printf ("  --timeoffset <hour>        Offset for timestamps (-12 to 12)\n");
-         printf ("  --verbose                  Increases log level\n");
          printf ("  --waitfirst <seconds>      Wait some time before starting (e.g. if directory is not mounted)\n");
          printf ("  --nice <level>             Set the Nice Level of the process (-20 (best) <--> 19 (worst))\n");
          printf ("\n");

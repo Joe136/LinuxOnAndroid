@@ -35,6 +35,8 @@ static FILE *g_oLog     = NULL;
 //---------------------------Start Main--------------------------------------------//
 int main (int argc, const char *argv[], const char *envp[]) {
 
+   struct ServerConfig sconfig; memset (&sconfig, 0, sizeof (struct ServerConfig) );
+
    // Catch Ctrl + C
    registerSignals ();
 
@@ -63,16 +65,22 @@ int main (int argc, const char *argv[], const char *envp[]) {
       return 2;
    }
 
-/*   if (m_oArguments.time < 20) {
+   if (m_oArguments.time < 20) {
       wrnMsg ("changing time to 20s (minimum)");
       m_oArguments.time = 20;
    }
-*/
 
-   struct ServerConfig sconfig;
+   if (m_oArguments.selftest) {
+      struct stat stat_dir;
+      if (stat ("/data/data/com.android.settings/files/wallpaper", &stat_dir) )
+         errMsg ("selftest: cannot find wallpaper file, changing wallpaper will not work");
 
-   openIPCServer  (&sconfig);
-   startIPCServer (&sconfig);
+      wrnMsg ("selftest: disable time");
+      m_oArguments.time = 1;
+   } else {
+      openIPCServer  (&sconfig);
+      startIPCServer (&sconfig);
+   }
 
 
    /*------------------------Verbose Output----------------------------------------*/
@@ -123,13 +131,14 @@ int main (int argc, const char *argv[], const char *envp[]) {
 
 
    /*------------------------Main Loop---------------------------------------------*/
-   bool gosleep     = true;
-   int reloadcount  = 0;
-   long long random = 0;
-   time_t begtime   = time (NULL);
+   bool gosleep        = true;
+   int reloadcount     = 0;
+   long long random    = 0;
+   time_t begtime      = time (NULL);
    char command[1024];
    struct RandomListEntity *current = &randomVector[0];
-   char *argv2[]    = {"/system/bin/mksh", "-c", NULL, NULL};
+   char *argv2[]       = {"/system/bin/mksh", "-c", NULL, NULL};
+   int  *selfteststats = NULL; size_t sts = sumImages * 10; size_t stcount = 0; if (m_oArguments.selftest) { selfteststats = (int*)malloc (sts); memset (selfteststats, 0, sts); }
 
    srand (time(NULL) );
    logFlush ();
@@ -255,14 +264,15 @@ int main (int argc, const char *argv[], const char *envp[]) {
 
       int pid;
 
-      if (!(pid = fork() ) ) {
-         if (g_oLog) { dup2 (fileno(g_oLog), fileno(stderr) ); /*dup2 (fileno(g_oLog), fileno(stdout) );*/ fclose (g_oLog); }
-         execvp ("/system/bin/mksh", argv2);
-         exit (1);
+      if (!m_oArguments.selftest) {
+         if (!(pid = fork() ) ) {
+            if (g_oLog) { dup2 (fileno(g_oLog), fileno(stderr) ); /*dup2 (fileno(g_oLog), fileno(stdout) );*/ fclose (g_oLog); }
+            execvp ("/system/bin/mksh", argv2);
+            exit (1);
+         }
+
+         waitpid (pid, NULL, 0);
       }
-
-
-      waitpid (pid, NULL, 0);
 
       time_t curr = time (NULL);
 
@@ -276,6 +286,15 @@ int main (int argc, const char *argv[], const char *envp[]) {
          if (g_oLog) fprintf (g_oLog, "wallpaper-changer: log: set wallpaper: %s\n", current->vector->temp1);
       }
 
+      if (m_oArguments.selftest) {
+         if (n < sts)
+            ++selfteststats[n];
+
+         ++stcount;
+         gosleep = false;
+         g_bNext = true;
+      }
+
       if (++reloadcount >= m_oArguments.reloadmult) {   //TODO make this more dynamic
          g_bReload = true;
          gosleep   = false;
@@ -286,6 +305,30 @@ int main (int argc, const char *argv[], const char *envp[]) {
 
 
    /*------------------------Cleanup-----------------------------------------------*/
+   if (selfteststats) {
+      printf ("selftest:\n");
+      if (g_oLog) fprintf (g_oLog, "wallpaper-changer: selftest:\n");
+
+      int i, cmin = 0x7FFFFFFF, cmax = 0, pmin = 0, pmax = 0;
+      for (i = 0; i < sumImages; ++i) {
+         if (selfteststats[i] < cmin) { cmin = selfteststats[i]; pmin = i; }
+         if (selfteststats[i] > cmax) { cmax = selfteststats[i]; pmax = i; }
+         printf ("%i, %i, %i, %s\n", i, selfteststats[i], randomVector[i].vector->vector.likelihood[randomVector[i].pos], randomVector[i].vector->vector.vector[randomVector[i].pos]);
+         if (g_oLog) fprintf (g_oLog, "%i, %i, %i, %s\n", i, selfteststats[i], randomVector[i].vector->vector.likelihood[randomVector[i].pos], randomVector[i].vector->vector.vector[randomVector[i].pos]);
+      }//end for
+
+      printf ("selftest: count of set images: %i\n", stcount);
+      printf ("selftest: min set: %i, %i, %i, %s\n", pmin, cmin, randomVector[pmin].vector->vector.likelihood[randomVector[pmin].pos], randomVector[pmin].vector->vector.vector[randomVector[pmin].pos]);
+      printf ("selftest: max set: %i, %i, %i, %s\n", pmax, cmax, randomVector[pmax].vector->vector.likelihood[randomVector[pmax].pos], randomVector[pmax].vector->vector.vector[randomVector[pmax].pos]);
+      if (g_oLog) {
+         fprintf (g_oLog, "wallpaper-changer: selftest: count of set images: %i\n", stcount);
+         fprintf (g_oLog, "wallpaper-changer: selftest: min set: %i, %i, %i, %s\n", pmin, cmin, randomVector[pmin].vector->vector.likelihood[randomVector[pmin].pos], randomVector[pmin].vector->vector.vector[randomVector[pmin].pos]);
+         fprintf (g_oLog, "wallpaper-changer: selftest: max set: %i, %i, %i, %s\n", pmax, cmax, randomVector[pmax].vector->vector.likelihood[randomVector[pmax].pos], randomVector[pmax].vector->vector.vector[randomVector[pmax].pos]);
+      }
+
+      free (selfteststats);
+   }
+
    free (randomVector);
    for (vectorLast = vector; vectorLast != NULL; vectorLast = vectorLast->next) {
       cleanupImageVector (&vectorLast->vector);
