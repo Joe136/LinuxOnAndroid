@@ -2,7 +2,7 @@
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 
 #ifndef RANDOMHANDLING_H
-#define RAND0MHANDLING_H
+#define RANDOMHANDLING_H
 
 //---------------------------Includes----------------------------------------------//
 //#include<signal.h>

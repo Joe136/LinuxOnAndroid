@@ -31,7 +31,18 @@
 struct ServerConfig {
    int sock;
    struct sockaddr_un server;
+   struct StatisticsConfig *statistics;
 };//end struct
+
+
+
+//---------------------------Forward Declarations----------------------------------//
+char *sendIPC (struct ServerConfig *config, char *message);
+
+
+
+//---------------------------Includes----------------------------------------------//
+#include "loghandling.h"
 
 
 
@@ -105,9 +116,14 @@ void *runIPCServer (void *vconfig) {
                g_bTime = true;
             else if (!strncmp (buffer, "reload", 7) )
                g_bReload = true;
-            else if (!strncmp (buffer, "status", 7) )
-               g_bStatus = true;
-            else if (!strncmp (buffer, "next", 5) )
+            else if (!strncmp (buffer, "status", 7) ) {
+               //g_bStatus = true;
+               char *statusmsg = logStatus (config->statistics, true);
+               if (statusmsg) {
+                  send (sock, statusmsg, strnlen (statusmsg, 4096), 0);
+                  free (statusmsg);
+               }
+            } else if (!strncmp (buffer, "next", 5) )
                g_bNext = true;
             else if (!strncmp (buffer, "current", 8) )
                g_bCurrent = true;
@@ -154,7 +170,8 @@ char *sendIPC (struct ServerConfig *config, char *message) {
    int size = 0;
 
    //do {
-      size = recv (config->sock, buffer, 4095, 0);
+      //size = recv (config->sock, buffer, 4095, 0);
+      size = read (config->sock, buffer, 4095);
 
       if (size > 0) {
          buffer[size] = 0;
@@ -162,7 +179,7 @@ char *sendIPC (struct ServerConfig *config, char *message) {
          result = (char*)malloc (4096);
          strncpy (result, buffer, size + 1);
       }
-   //} while (size > 0);
+   //} while (size >= 0);
 
    return result;
 }//end Fct

@@ -7,7 +7,7 @@ APP_BINARY   = wallpaper-changer
 
 MAJOR        = 0
 MINOR        = 1
-PATCH        = 6
+PATCH        = 7
 
 ## Compiler specification
 CC           = gcc

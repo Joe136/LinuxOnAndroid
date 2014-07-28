@@ -2,7 +2,7 @@
 // this file, and for a DISCLAIMER OF ALL WARRANTIES.
 
 
-//---------------------------Global Variables--------------------------------------//
+//---------------------------Includes----------------------------------------------//
 #include<stdio.h>
 #include<unistd.h>
 #include<stdlib.h>
@@ -10,8 +10,9 @@
 #include<sys/wait.h>
 #include<sys/ioctl.h>
 #include<linux/rtc.h>
-
 #include "wallpaper-changer.h"
+
+//---------------------------Global Variables--------------------------------------//
 static bool  g_bCurrent = false;
 static bool  g_bNext    = false;
 static bool  g_bRepeat  = true;
@@ -23,19 +24,20 @@ static FILE *g_oLog     = NULL;
 
 
 //---------------------------Includes----------------------------------------------//
+#include "loghandling.h"
 #include "ipchandling.h"
 #include "argumenthandling.h"
 #include "directoryhandling.h"
 #include "randomhandling.h"
 #include "signalhandling.h"
-#include "loghandling.h"
 
 
 
 //---------------------------Start Main--------------------------------------------//
 int main (int argc, const char *argv[], const char *envp[]) {
 
-   struct ServerConfig sconfig; memset (&sconfig, 0, sizeof (struct ServerConfig) );
+   struct ServerConfig     sconfig;    memset (&sconfig,    0, sizeof (struct ServerConfig) );
+   struct StatisticsConfig statistics; memset (&statistics, 0, sizeof (struct StatisticsConfig) );
 
    // Catch Ctrl + C
    registerSignals ();
@@ -49,6 +51,8 @@ int main (int argc, const char *argv[], const char *envp[]) {
    m_oArguments.verbose    = 1;
    m_oArguments.updatetime = 172800;   // two days
    m_oArguments.reloadmult = 5;
+   statistics.arguments    = &m_oArguments;
+   sconfig.statistics      = &statistics;
 
    if (!checkArguments (&m_oArguments, argc, argv, envp) ) {
       return 1;
@@ -131,10 +135,13 @@ int main (int argc, const char *argv[], const char *envp[]) {
 
 
    /*------------------------Main Loop---------------------------------------------*/
-   bool gosleep        = true;
-   int reloadcount     = 0;
-   long long random    = 0;
-   time_t begtime      = time (NULL);
+   bool gosleep         = true;
+   int reloadcount      = 0;
+   long long random     = 0;
+   time_t begtime       = time (NULL);
+   statistics.vector    = vector;
+   statistics.sumImages = &sumImages;
+   statistics.begtime   = &begtime;
    char command[1024];
    struct RandomListEntity *current = &randomVector[0];
    char *argv2[]       = {"/system/bin/mksh", "-c", NULL, NULL};
@@ -184,6 +191,8 @@ int main (int argc, const char *argv[], const char *envp[]) {
 
          createRandomList (&randomVector, &oldLikelihood, vector, sumImages, m_oArguments.likelihood);
 
+         statistics.vector    = vector;
+
          reloadcount = 0;
          g_bReload   = false;
          gosleep     = true;
@@ -191,7 +200,7 @@ int main (int argc, const char *argv[], const char *envp[]) {
       }
 
       if (g_bStatus) {
-         logStatus ();
+         logStatus (&statistics, false);
          logFlush ();
          g_bStatus = false;
       }

@@ -48,14 +48,23 @@ struct Arguments {
 
 
 
+//---------------------------Includes----------------------------------------------//
+#include "ipchandling.h"
+
+
+
 //---------------------------Start sendToServer------------------------------------//
 void sendToServer (char *message) {
    if (!message) return;
 
    struct ServerConfig sconfig;
 
-   openIPCClient  (&sconfig);
-   sendIPC        (&sconfig, message);
+   openIPCClient (&sconfig);
+   char *retmsg = sendIPC (&sconfig, message);
+   if (retmsg) {
+      puts (retmsg);
+      free (retmsg);
+   }
    closeIPCClient (&sconfig);
 }//end Fct
 

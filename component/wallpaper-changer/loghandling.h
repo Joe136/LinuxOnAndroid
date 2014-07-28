@@ -8,6 +8,30 @@
 
 
 
+//---------------------------Struct StatisticsConfig-------------------------------//
+struct StatisticsConfig {
+   struct Arguments         *arguments;
+   struct ImageVectorEntity *vector;
+   int                      *sumImages;
+   time_t                   *begtime;
+};//end struct
+
+
+
+
+//---------------------------Forward Declarations----------------------------------//
+char* logStatus (struct StatisticsConfig *statistics, bool returnOnly);
+
+
+
+//---------------------------Includes----------------------------------------------//
+#include "argumenthandling.h"
+#include "directoryhandling.h"
+#include "randomhandling.h"
+
+
+
+
 //---------------------------Start logMsg------------------------------------------//
 void logMsg (const char *msg) {
    printf ("%s\n", msg);
@@ -41,28 +65,45 @@ void logFlush () {
 
 
 
-//---------------------------Defines-----------------------------------------------//
-#define logStatus() \
-         printf ("directories: "); for (directory = m_oArguments.directory; directory != NULL; directory = directory->next) printf ("%s,", directory->name); \
-         printf ("\ntime: %u\n", m_oArguments.time); \
-         if (g_oLog) { fprintf (g_oLog, "wallpaper-changer: verbose: directories: "); for (directory = m_oArguments.directory; directory != NULL; directory = directory->next) fprintf (g_oLog, "%s,", directory->name); } \
-         if (g_oLog) fprintf (g_oLog, "\nwallpaper-changer: verbose: time: %u\n", m_oArguments.time); \
-\
-         int maxImages = 0; \
-         for (vectorLast = vector; vectorLast != NULL; vectorLast = vectorLast->next) { \
-            if (!vectorLast->vector.vector) \
-               continue; \
-            maxImages += vectorLast->vector.length; \
-         } \
-\
-         printf ("found images: %i\n", maxImages); \
-         printf ("accepted images: %i\n", sumImages); \
-         if (g_oLog) fprintf (g_oLog, "wallpaper-changer: verbose: found images: %i\n", maxImages); \
-         if (g_oLog) fprintf (g_oLog, "wallpaper-changer: verbose: accepted images: %i\n", sumImages); \
-\
-         time_t temp11 = m_oArguments.time + begtime + m_oArguments.timeoffset; struct tm *temp10 = localtime (&temp11); \
-         printf ("next change: %.0fs (%4i-%02i-%02i %02i:%02i:%02i)\n", m_oArguments.time - difftime (time(NULL), begtime), temp10->tm_year + 1900, temp10->tm_mon, temp10->tm_mday, temp10->tm_hour, temp10->tm_min, temp10->tm_sec); \
-         if (g_oLog) fprintf (g_oLog, "wallpaper-changer: verbose: next change: %.0fs (%4i-%02i-%02i %02i:%02i:%02i)\n", m_oArguments.time - difftime (time(NULL), begtime),  temp10->tm_year + 1900, temp10->tm_mon, temp10->tm_mday, temp10->tm_hour, temp10->tm_min, temp10->tm_sec); \
+//---------------------------Start logStatus---------------------------------------//
+char* logStatus (struct StatisticsConfig *statistics, bool returnOnly) {
+   if (!statistics) return NULL;
+
+   char *message = (char*) malloc (4096);
+   int   pos     = 0;
+
+   struct DirectoryEntity   *directory;
+
+   pos += snprintf (&message[pos], 4096, "wallpaper-changer: verbose: directories: "); for (directory = statistics->arguments->directory; directory != NULL; directory = directory->next) pos += snprintf (&message[pos], 4096, "%s,", directory->name);
+   pos += snprintf (&message[pos], 4096, "\nwallpaper-changer: verbose: time: %u\n", statistics->arguments->time);
+
+
+   struct ImageVectorEntity *vectorLast = NULL;
+   int maxImages = 0;
+   for (vectorLast = statistics->vector; vectorLast != NULL; vectorLast = vectorLast->next) {
+      if (!vectorLast->vector.vector)
+         continue;
+      maxImages += vectorLast->vector.length;
+   }
+
+
+   pos += snprintf (&message[pos], 4096, "wallpaper-changer: verbose: found images: %i\n", maxImages);
+   pos += snprintf (&message[pos], 4096, "wallpaper-changer: verbose: accepted images: %i\n", *statistics->sumImages);
+
+
+   time_t temp11 = statistics->arguments->time + *statistics->begtime + statistics->arguments->timeoffset; struct tm *temp10 = localtime (&temp11);
+   pos += snprintf (&message[pos], 4096, "wallpaper-changer: verbose: next change: %.0fs (%4i-%02i-%02i %02i:%02i:%02i)\n", statistics->arguments->time - difftime (time(NULL), *statistics->begtime), temp10->tm_year + 1900, temp10->tm_mon, temp10->tm_mday, temp10->tm_hour, temp10->tm_min, temp10->tm_sec);
+
+
+   if (returnOnly)
+      return message;
+   else {
+      puts (message);
+      if (g_oLog)  fputs (message, g_oLog);
+      if (message) free (message);
+      return NULL;
+   }
+}//end Fct
 
 #endif //LOGHANDLING_H
 
