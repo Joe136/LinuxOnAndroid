@@ -139,13 +139,15 @@ int main (int argc, const char *argv[], const char *envp[]) {
    int reloadcount      = 0;
    long long random     = 0;
    time_t begtime       = time (NULL);
-   statistics.vector    = vector;
-   statistics.sumImages = &sumImages;
-   statistics.begtime   = &begtime;
    char command[1024];
    struct RandomListEntity *current = &randomVector[0];
    char *argv2[]       = {"/system/bin/mksh", "-c", NULL, NULL};
    int  *selfteststats = NULL; size_t sts = sumImages * 10; size_t stcount = 0; if (m_oArguments.selftest) { selfteststats = (int*)malloc (sts); memset (selfteststats, 0, sts); }
+
+   statistics.vector    = &vector;
+   statistics.current   = &current;
+   statistics.sumImages = &sumImages;
+   statistics.begtime   = &begtime;
 
    srand (time(NULL) );
    logFlush ();
@@ -174,6 +176,11 @@ int main (int argc, const char *argv[], const char *envp[]) {
       if (g_bReload) {
          if (m_oArguments.verbose >= 2) logMsg ("reload directories");
 
+         char temp3[512];
+         strcpy (temp3, current->vector->vector.vector[current->pos]);
+         size_t temp4 = strnlen (temp3, 512);
+         current = NULL;
+
          free (randomVector); randomVector = NULL;
 
          for (vectorLast = vector; vectorLast != NULL; vectorLast = vectorLast->next) {
@@ -184,14 +191,19 @@ int main (int argc, const char *argv[], const char *envp[]) {
          readDirectories (&vector, m_oArguments.directory);
          countAcceptedImages (&sumImages, vector);
 
-         if (sumImages <= 1) {
-            errMsg ("not enough images to rotate (< 2)");
-            return 4;
-         }
+         if (sumImages <= 1) { errMsg ("not enough images to rotate (< 2)"); return 4; }
 
          createRandomList (&randomVector, &oldLikelihood, vector, sumImages, m_oArguments.likelihood);
+         current = &randomVector[0];
 
-         statistics.vector    = vector;
+         for (int i = 0; i < sumImages; ++i) {   // Restore 'current' reference
+            if (!strncmp (randomVector[i].vector->vector.vector[randomVector[i].pos], temp3, temp4) ) {
+               current = &randomVector[i];
+               strncpy (&current->vector->temp1[current->vector->temp2], current->vector->vector.vector[current->pos], 512 - current->vector->temp2);
+               break;
+            }
+         }//end for
+
 
          reloadcount = 0;
          g_bReload   = false;

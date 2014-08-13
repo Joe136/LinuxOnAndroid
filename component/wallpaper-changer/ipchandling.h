@@ -58,8 +58,12 @@ bool openIPCServer (struct ServerConfig *config) {
    strcpy (config->server.sun_path, NAME);
 
    int res = bind (config->sock, (struct sockaddr*) &config->server, sizeof (struct sockaddr_un) );
-   if (res)
-      return false;
+   if (res) {
+      unlink (NAME);
+      res = bind (config->sock, (struct sockaddr*) &config->server, sizeof (struct sockaddr_un) );
+      if (res)
+         return false;
+   }
 
    listen (config->sock, 3);
 
@@ -123,6 +127,7 @@ void *runIPCServer (void *vconfig) {
                   send (sock, statusmsg, strnlen (statusmsg, 4096), 0);
                   free (statusmsg);
                }
+               wakeup = false;
             } else if (!strncmp (buffer, "next", 5) )
                g_bNext = true;
             else if (!strncmp (buffer, "current", 8) )

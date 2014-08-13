@@ -10,10 +10,11 @@
 
 //---------------------------Struct StatisticsConfig-------------------------------//
 struct StatisticsConfig {
-   struct Arguments         *arguments;
-   struct ImageVectorEntity *vector;
-   int                      *sumImages;
-   time_t                   *begtime;
+   struct Arguments          *arguments;
+   struct ImageVectorEntity **vector;
+   struct RandomListEntity  **current;
+   int                       *sumImages;
+   time_t                    *begtime;
 };//end struct
 
 
@@ -80,7 +81,7 @@ char* logStatus (struct StatisticsConfig *statistics, bool returnOnly) {
 
    struct ImageVectorEntity *vectorLast = NULL;
    int maxImages = 0;
-   for (vectorLast = statistics->vector; vectorLast != NULL; vectorLast = vectorLast->next) {
+   for (vectorLast = *statistics->vector; vectorLast != NULL; vectorLast = vectorLast->next) {
       if (!vectorLast->vector.vector)
          continue;
       maxImages += vectorLast->vector.length;
@@ -89,6 +90,7 @@ char* logStatus (struct StatisticsConfig *statistics, bool returnOnly) {
 
    pos += snprintf (&message[pos], 4096, "wallpaper-changer: verbose: found images: %i\n", maxImages);
    pos += snprintf (&message[pos], 4096, "wallpaper-changer: verbose: accepted images: %i\n", *statistics->sumImages);
+   pos += snprintf (&message[pos], 4096, "wallpaper-changer: verbose: current image: %s\n", (*statistics->current)->vector->temp1);
 
 
    time_t temp11 = statistics->arguments->time + *statistics->begtime + statistics->arguments->timeoffset; struct tm *temp10 = localtime (&temp11);
