@@ -15,7 +15,7 @@ CPP          = g++
 
 ## Directory specification
 srcdir       = .
-prefix       = /usr
+prefix       = /usr/local
 exec_prefix  = ${prefix}
 bindir       = ${exec_prefix}/sbin
 # man1dir     = ${prefix}/man/man1
