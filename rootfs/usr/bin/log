@@ -1,0 +1,22 @@
+#!/bin/bash
+# See the file "license.terms" for information on usage and redistribution of
+# this file, and for a DISCLAIMER OF ALL WARRANTIES.
+
+[[ -z "$1" ]] && echo "$(basename "$0") <log name>" && exit 1
+
+if [ -d "/var/log/$1" ]; then
+   if [ -e "/var/log/$1/$1" ]; then
+      less -Si "/var/log/$1/$1"
+   elif [ -e "/var/log/$1/$1.log" ]; then
+      less -Si "/var/log/$1/$1.log"
+   else
+      echo "error: Log file doesn't exist"
+   fi
+elif [ -e "/var/log/$1" ]; then
+   less -Si "/var/log/$1"
+elif [ -e "/var/log/$1.log" ]; then
+   less -Si "/var/log/$1.log"
+else
+   echo "error: Log file doesn't exist"
+fi
+
