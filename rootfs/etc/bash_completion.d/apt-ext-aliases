@@ -1,0 +1,16 @@
+# Debian apt-cache(8) completion                           -*- shell-script -*-
+
+_apt_cache_mod()
+{
+   local cur prev words cword
+   _init_completion || return
+
+   COMPREPLY=( $( apt-cache --no-generate pkgnames "$cur" 2> /dev/null ) )
+
+   return 0
+} &&
+complete -F _apt_cache_mod apt-reconfigure &&
+complete -F _apt_cache_mod apt-list &&
+complete -F _apt_cache_mod apt-list-grep
+
+# ex: ts=4 sw=4 et filetype=sh
