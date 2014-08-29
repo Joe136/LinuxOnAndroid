@@ -79,6 +79,7 @@ function function_checkArguments()
   until test "$((i > -BASH_ARGC))" == "0"; do
     i=$((i - 1))
     curr_arg="${BASH_ARGV[$i]}"
+
     if [ -z "$curr_arg" ]; then
       :
     elif [ "$curr_arg" == "-h" ] || [ "$curr_arg" == "--help" ]; then

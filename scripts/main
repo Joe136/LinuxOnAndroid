@@ -43,7 +43,7 @@ function function_main()
     function_mountram
 
   ;;
-  umountram)
+  umountram|unmountram)
     function_umountram
 
   ;;
@@ -54,12 +54,18 @@ function function_main()
     chroot "$arg_user" "$mnt" $shell
 
   ;;
+  exec)
+    function_mount
+
+    cd "$mnt"
+    chroot "$arg_user" "$mnt" "${arg_rest[@]}"
+
+  ;;
   ssh)
     function_mount
 
     cd "$mnt"
     chroot "$mnt" /opt/android-scripts/ssh.sh "$sshport" "${arg_rest[@]}"
-    #eval chroot "$mnt" /opt/android-scripts/ssh.sh "$sshport" $arg_rest
 
   ;;
   vnc)
@@ -67,7 +73,6 @@ function function_main()
 
     cd "$mnt"
     chroot "$mnt" /opt/android-scripts/vnc.sh "$vncport" "${arg_rest[@]}"
-    #eval chroot "$mnt" /opt/android-scripts/vnc.sh "$vncport" "${arg_rest[@]}"
 
   ;;
   nx)
@@ -75,7 +80,6 @@ function function_main()
 
     cd "$mnt"
     chroot "$mnt" /opt/android-scripts/vnc.sh "$vncport" "${arg_rest[@]}"
-    #eval chroot "$mnt" /opt/android-scripts/vnc.sh "$vncport" "${arg_rest[@]}"
 
   ;;
   http)
@@ -83,7 +87,6 @@ function function_main()
 
     cd "$mnt"
     chroot "$mnt" /opt/android-scripts/http.sh "${arg_rest[@]}"
-    #eval chroot "$mnt" /opt/android-scripts/http.sh "${arg_rest[@]}"
 
   ;;
   install)
@@ -135,7 +138,7 @@ function function_main()
     #function_mount
 
     #cd "$mnt"
-    #chroot "$mnt" /opt/android-scripts/network.sh "$wlan_if" $@
+    #chroot "$mnt" /opt/android-scripts/network.sh "$wlan_if" "${arg_rest[@]}"
 
   ;;
   hardinstall)
@@ -146,7 +149,7 @@ function function_main()
 
   ;;
   *)
-    echo "Usage: $(basename $0) [help|[u[n]]mount[sd|img]|chroot|ssh|vnc|nx|http|install|passwd|hardinstall]"
+    echo "Usage: $(basename $0) [help|[u[n]]mount[sd|img]|chroot|exec|ssh|vnc|nx|http|install|nw|passwd|hardinstall]"
     exit 1
 
   ;;

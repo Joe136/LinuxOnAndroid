@@ -2,6 +2,14 @@
 # See the file "license.terms" for information on usage and redistribution of
 # this file, and for a DISCLAIMER OF ALL WARRANTIES.
 
+unset mountdefault imgtype ramdisk wlan_if mobile_if shell img mnt
+unset native architecture partition arg_imgtype imgoptions arg_ramdisk sshport
+unset vncport vncuser tmp_img tmp_mnt tmp_native tmp_architecture tmp_partition
+unset tmp_imgtype tmp_imgoptions tmp_ramdisk tmp_sshport tmp_vncport tmp_vncuser
+unset arg_noimage
+
+
+
 ##---------------------------Start function_install---------------------------##
 function function_install()
 {

@@ -12,6 +12,12 @@
 # http://sven-ola.dyndns.org/repo/debian-kit-en.html
 
 
+# I need a MKSH shell but busybox's 'sh' was preffered in PATH
+if [ "$(basename "`readlink -f "/proc/$$/exe"`")" != "mksh" ]; then
+   exec mksh "$0" $@
+fi
+
+
 ##---------------------------Initialize---------------------------------------##
 system="$(readlink -f $0 | tr '/' '\n' | tail -n 2 | head -n 1)"
 home="$ANDROID_DATA/local"
@@ -39,6 +45,10 @@ unset curr_arg
 
 
 ##---------------------------Defines------------------------------------------##
+
+
+
+##---------------------------Start currentscriptpath--------------------------##
 function currentscriptpath()
 {
    local fullpath=`echo "$(readlink -f $0)"`
@@ -88,14 +98,13 @@ function function_initialize()
    fi
 
    if [ -n "$systembase" ] && [ -e "$config_path/config.$systembase" ]; then
-      echo "Warning, a configuration with the systemname \'$systembase\' exists (extracted from \'$bname\')."
-   fi
+      echo "Warning, a configuration with the systemname '$systembase' exists (extracted from '$bname')."
 
-   if [ -e "$config_path/config.$systembase" ]; then
       . "$config_path/config.$system" # TODO
 
       kit="$kit2"
    fi
+#exit
 
    function_checkArguments
 

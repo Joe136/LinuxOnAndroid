@@ -2,6 +2,8 @@
 # See the file "license.terms" for information on usage and redistribution of
 # this file, and for a DISCLAIMER OF ALL WARRANTIES.
 
+unset loopno loop
+
 ##---------------------------Start function_mount-----------------------------##
 function function_mount()
 {
@@ -38,12 +40,19 @@ function function_mount()
     mount -t "$imgtype" $imgoptions "$partition" "$mnt"
   else
     echo "Mounting: Loopback mount ..."
+
+   if mountpoint -q "$mnt"; then
+      echo "Error: Anything is mounted on this mount point"
+      exit 9
+   fi
     mkdir -p "$mnt"
 
-    loopno=$(getloopno)
+    tmp_loopno="$loopno"
+    loopno=$(getloopno $loopno)
     loop="/dev/block/loop$loopno"
     if [ "$loopno" == "" ]; then
       echo "Error: Could not mount image, no free loop-devices found"
+      [[ -n "$tmp_loopno" ]] && echo "Error: Maybe the predefined loop-device \"$tmp_loopno\" is reserved?"
       exit 6
     fi
     #if [ -e "$loop" ]; then
@@ -65,10 +74,19 @@ function function_mount()
   fi
 
   echo "Mounting: Setting up chroot environment ..."
-  mount -o bind /dev "$mnt/dev"
-  mount -t devpts devpts "$mnt/dev/pts"
-  mount -o bind /proc "$mnt/proc"
-  mount -o bind /sys "$mnt/sys"
+  mkdir -p "$mnt/.dev";     mount -o bind /dev "$mnt/.dev"
+  mkdir -p "$mnt/.dev/pts"; mount -t devpts devpts "$mnt/.dev/pts"
+  mkdir -p "$mnt/proc";     mount -o bind /proc "$mnt/proc"
+  mkdir -p "$mnt/sys";      mount -o bind /sys "$mnt/sys"
+  mkdir -p "$mnt/run";      mount -t tmpfs tmpfs "$mnt/run"
+
+  #TODO experimental (workaround for logging)
+  rm -r "$mnt/dev"/* 2> /dev/null
+  for l in `ls -d "$mnt/.dev"/*`; do
+    l="$(basename "$l")"
+    ln -s "../.dev/$l" "$mnt/dev/$l"
+  done
+  rm "$mnt/dev/log" "$mnt/dev/xconsole" 2> /dev/null
 
   if [ ! -z "$mountdefault" ]; then
     for comm in $(echo "$mountdefault" | awk 'BEGIN{FS=","}{print $0}'); do
@@ -106,44 +124,43 @@ function function_mount()
 function function_umount()
 {
   #function_umountimg
-  #"$0" umountimg $@
+  #function_umountsd
 
-  #loop="$(mountpoint -n "$mnt" | cut -sd' ' -f1)"
-  #if ! losetup "$loop" > /dev/null 2>&1; then
-  #  unset loop
-  #fi
+  unset loop
+  loopcount=0
 
-  mounts="$(cut -sd' ' -f2 /proc/mounts | grep "^$mnt" | sort -r)"
+  mounts="$(cut -sd' ' -f2 /proc/mounts | grep "^$mnt" | sort -r)"   #TODO paths with spaces
 
-  echo $mounts
-  return
+  [[ -z "$mounts" ]] && echo "Nothing to unmount" && return
 
   for m in $mounts; do
-    if losetup "$(mountpoint -n "$m" | cut -sd' ' -f1)" > /dev/null 2>&1; then
-      loop="$loop\n`losetup "$(mountpoint -n "$m" | cut -sd' ' -f1)"`"
+    looppath="$(mountpoint -n "$m" | cut -sd' ' -f1)"
+    if echo "$looppath" | grep -qe '^/dev/[a-z/]*loop[0-9][0-9]*'; then
+      set +A loop -- [$loopcount]="$looppath"
+      loopcount=$((loopcount + 1))
     fi
   done
 
-  sys_pid="$(ps -o pid,comm | awk '/zygote/ || /'$$'/ {print $1}')"
-  mnt_pid="$(fuser -m "$mnt")"
-
   echo "Kill running processes"
+  sys_pid="$(ps -o pid,comm | awk '/zygote/ || /'$$'/ {print $1}')" #TODO better analysis of never-killing processes
+  mnt_pid="$(fuser -m "$mnt")"
+  unset systemblocked
+
   #fuser -km "$mnt" # TODO replace with include list
   for proc in $mnt_pid; do
     unset temp1
-    for p in $sys_pid; do
-      if [ "$proc" == "$p" ]; then
+    for sysp in $sys_pid; do
+      if [ "$proc" == "$sysp" ]; then
         temp1="true"
+        systemblocked="true"
         break
       fi
     done
-    kill -s 9 "$proc"
+    [[ "$temp1" != "true" ]] && kill -s 9 "$proc"   #TODO less brutal, quit first
   done
 
   echo "Unmounting ..."
-  #awk '{print $2}' /proc/mounts | grep "^$mnt" | sort -r | xargs umount
-  #cut -sd' ' -f2 /proc/mounts | grep "^$mnt" | sort -r | awk '{system("umount -fl \"" $0 "\"")}'
-
+  echo "   unmount Images ..."
   for m in $mounts; do
     # Unmount more and more aggressive
     umount "$m"
@@ -151,10 +168,12 @@ function function_umount()
     mountpoint -q "$m" && umount -fl "$m"
   done
 
-  echo "Unmounting: Loopback unmount ..."
-  for l in $loop; do
-    losetup -d "$l"
-    rm "$l"
+  echo "   unmount Loopback Devices ..."
+  for l in ${loop[@]}; do
+    if [ -e "$l" ]; then
+      losetup -d "$l"
+      rm "$l"
+    fi
   done
 }
 
@@ -202,56 +221,57 @@ function function_mountsd()
 ##---------------------------Start function_umountsd--------------------------##
 function function_umountsd()
 {
+  unset loop
+  loopcount=0
+
   mounts="$(cut -sd' ' -f2 /proc/mounts | grep "^$mnt/mnt/sdcard" | sort -r)"
   mounts="$mounts\n$(cut -sd' ' -f2 /proc/mounts | grep "^$mnt/mnt/intern" | sort -r)"
 
-  if [ -z "$mounts" ]; then
-    echo "Nothing to unmount"
-  else
-    for m in $mounts; do
-      if losetup "$(mountpoint -n "$m" | cut -sd' ' -f1)" > /dev/null 2>&1; then
-        loop="$loop\n`losetup "$(mountpoint -n "$m" | cut -sd' ' -f1)"`"
+  [[ -z "$mounts" ]] && echo "Nothing to unmount" && return
+
+  for m in $mounts; do
+    looppath="$(mountpoint -n "$m" | cut -sd' ' -f1)"
+    if echo "$looppath" | grep -qe '^/dev/[a-z/]*loop[0-9][0-9]*'; then
+      set +A loop -- [$loopcount]="$looppath"
+      loopcount=$((loopcount + 1))
+    fi
+  done
+
+  echo "Kill running processes"
+  sys_pid="$(ps -o pid,comm | awk '/zygote/ || /'$$'/ {print $1}')"
+  mnt_pid="$(fuser -m "$mnt/mnt/sdcard")"
+  mnt_pid="$mnt_pid\n$(fuser -m "$mnt/mnt/intern")"
+  unset systemblocked
+
+  #fuser -km "$mnt" # TODO replace with include list
+  for proc in $mnt_pid; do
+    unset temp1
+    for sysp in $sys_pid; do
+      if [ "$proc" == "$sysp" ]; then
+        temp1="true"
+        systemblocked="true"
+        break
       fi
     done
+    [[ "$temp1" != "true" ]] && kill -s 9 "$proc"   #TODO less brutal, quit first
+  done
 
-    sys_pid="$(ps -o pid,comm | awk '/zygote/ || /'$$'/ {print $1}')"
-    mnt_pid="$(fuser -m "$mnt/mnt/sdcard")"
-    mnt_pid="$mnt_pid\n$(fuser -m "$mnt/mnt/intern")"
+  echo "Unmounting ..."
+  echo "   unmount Images ..."
+  for m in $mounts; do
+    # Unmount more and more aggressive
+    umount "$m"
+    mountpoint -q "$m" && umount -f "$m"
+    mountpoint -q "$m" && umount -fl "$m"
+  done
 
-    echo "Kill running processes"
-    for proc in $mnt_pid; do
-      unset temp1
-      for p in $sys_pid; do
-        if [ "$proc" == "$p" ]; then
-          temp1="true"
-          break
-        fi
-      done
-      kill -s 9 "$proc"
-    done
-
-    echo "Unmounting ..."
-    #awk '{print $2}' /proc/mounts | grep "^$mnt" | sort -r | xargs umount
-    #cut -sd' ' -f2 /proc/mounts | grep "^$mnt" | sort -r | awk '{system("umount -fl \"" $0 "\"")}'
-
-    for m in $mounts; do
-      # Unmount more and more aggressive
-      umount "$m"
-      mountpoint -q "$m" && umount -f "$m"
-      mountpoint -q "$m" && umount -fl "$m"
-    done
-
-    echo "Unmounting: Loopback unmount ..."
-    for l in $loop; do
+  echo "   unmount Loopback Devices ..."
+  for l in ${loop[@]}; do
+    if [ -e "$l" ]; then
       losetup -d "$l"
       rm "$l"
-    done
-  fi
-
-  #echo "Kill running processes"
-  #fuser -km "$mnt/mnt/sdcard"
-  #echo "Unmounting ..."
-  #umount -fl "$mnt/mnt/sdcard"
+    fi
+  done
 }
 
 
@@ -261,18 +281,17 @@ function function_mountimg()
 {
   #TODO check if $mnt is mounted
   beg=250
-  unset IFS
-  conffiles=default'
-'"$system"
-  for mountconf in $conffiles; do
+  set +A conffiles -- [0]="default"
+  set +A conffiles -- [1]="$system"
+
+  for mountconf in ${conffiles[@]}; do
     if [ -e "/data/local/linuxonandroid/mount.$mountconf" ]; then
       for line in $(cat "/data/local/linuxonandroid/mount.$mountconf" | awk '{print $0}'); do
-        IFS=":"
-        image="$(echo $line | awk '{ print $1 }')"
-        target="$mnt/$(echo $line | awk '{ print $2 }')"
-        options="$(echo $line | awk '{ print $3 }')"
-        type="$(echo $line | awk '{ print $4 }')"
-        unset IFS
+        image="$(echo $line | cut -sd':' -f1)"
+        target="$mnt/$(echo $line | cut -sd':' -f2)"
+        options="$(echo $line | cut -sd':' -f3)"
+        type="$(echo $line | cut -sd':' -f4)"
+
         if [ ! -z "$options" ]; then options="-o $options"; else unset options; fi
         if [ -z "$type" ]; then type="ext2"; fi
 
@@ -306,44 +325,52 @@ function function_mountimg()
 function function_umountimg()
 {
   sys_pid="$(ps -o pid,comm | awk '/zygote/ || /'$$'/ {print $1}')"
-  unset IFS
-  conffiles=default'
-'"$system"
-  for mountconf in $conffiles; do
+  set +A conffiles -- [0]="default"
+  set +A conffiles -- [1]="$system"
+
+  for mountconf in ${conffiles[@]}; do
     if [ -e "/data/local/linuxonandroid/mount.$mountconf" ]; then
       for line in $(cat "/data/local/linuxonandroid/mount.$mountconf" | awk '{print $0}'); do
-        IFS=":"
-        target="$mnt/$(echo $line | awk '{ print $2 }')"
-        unset IFS
+        target="$mnt/$(echo $line | cut -sd':' -f2)"
 
         # Continue if not mounted
         ! mountpoint -q "$target" && continue
 
+        unset loop
+        loopcount=0
+
         mounts="$(cut -sd' ' -f2 /proc/mounts | grep "^$target" | sort -r)"
-        mnt_pid="$(fuser -m "$target")"
 
         # Something's going wrong
-        [[ -z "$mounts" ]] && continue
+        [[ -z "$mounts" ]] && echo "warning: could not unmount $target" && continue
 
         for m in $mounts; do
-          if losetup "$(mountpoint -n "$m" | cut -sd' ' -f1)" > /dev/null 2>&1; then
-            loop="$loop\n`losetup "$(mountpoint -n "$m" | cut -sd' ' -f1)"`"
+          looppath="$(mountpoint -n "$m" | cut -sd' ' -f1)"
+          if echo "$looppath" | grep -qe '^/dev/[a-z/]*loop[0-9][0-9]*'; then
+            set +A loop -- [$loopcount]="$looppath"
+            loopcount=$((loopcount + 1))
           fi
         done
 
         echo "Kill running processes"
+        mnt_pid="$(fuser -m "$target")"
+        unset systemblocked
+
+        #fuser -km "$mnt" # TODO replace with include list
         for proc in $mnt_pid; do
           unset temp1
-          for p in $sys_pid; do
-            if [ "$proc" == "$p" ]; then
+          for sysp in $sys_pid; do
+            if [ "$proc" == "$sysp" ]; then
               temp1="true"
+              systemblocked="true"
               break
             fi
           done
-          kill -s 9 "$proc"
+          [[ "$temp1" != "true" ]] && kill -s 9 "$proc"   #TODO less brutal, quit first
         done
 
         echo "Unmounting ..."
+        echo "   unmount Images ..."
         for m in $mounts; do
           # Unmount more and more aggressive
           umount "$m"
@@ -351,10 +378,12 @@ function function_umountimg()
           mountpoint -q "$m" && umount -fl "$m"
         done
 
-        echo "Unmounting: Loopback unmount ..."
-        for l in $loop; do
-          losetup -d "$l"
-          rm "$l"
+        echo "   unmount Loopback Devices ..."
+        for l in ${loop[@]}; do
+          if [ -e "$l" ]; then
+            losetup -d "$l"
+            rm "$l"
+          fi
         done
       done
     fi

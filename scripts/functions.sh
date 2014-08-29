@@ -217,34 +217,16 @@ searchImage()
 
 
 
-#currentscriptpath()
-#{
-#  local fullpath=`echo "$(readlink -f $0)"`
-#  local fullpath_length=`echo ${#fullpath}`
-#  local scriptname="$(basename "$fullpath")"
-#  local scriptname_length=`echo ${#scriptname}`
-#  local result_length=`echo $((fullpath_length - $scriptname_length - 1))`
-#  local result=`echo "$fullpath" | head -c $result_length`
-#  echo "$result"
-#}
-
-
-
-#checkargs(args,level0,level1)
-#{
-#  arglenght="?"
-#  result=""
-#  lineend='
-#'
-#  i=$((1))
-#
-#  while [ $(($i <= $arglength)) == "1" ]
-#  do
-#
-#
-#  done
-#
-#  echo "$result"
-#}
+##---------------------------Start currentscriptpath--------------------------##
+currentscriptpath()
+{
+  local fullpath=`echo "$(readlink -f $0)"`
+  local fullpath_length=`echo ${#fullpath}`
+  local scriptname="$(basename "$fullpath")"
+  local scriptname_length=`echo ${#scriptname}`
+  local result_length=`echo $((fullpath_length - $scriptname_length - 1))`
+  local result=`echo "$fullpath" | head -c $result_length`
+  echo "$result"
+}
 
 

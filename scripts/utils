@@ -15,11 +15,18 @@ function currentscriptpath()
 
 function getloopno()
 {
-for i in $(seq 255 -1 0); do
-  if [ ! -e "/dev/block/loop$i" ]; then
-    echo $i
-    return
-  fi
-done
+   if [ -n "$1" ] && `echo "$1" | grep -qEe '^[0-9][0-9]?[0-9]?$'` && (($1 <= 255)); then
+      if [ ! -e "/dev/block/loop$1" ]; then
+         echo $1
+      fi
+      return
+   fi
+
+   for i in $(seq 255 -1 0); do
+      if [ ! -e "/dev/block/loop$i" ]; then
+         echo $i
+         return
+      fi
+   done
 }
 
