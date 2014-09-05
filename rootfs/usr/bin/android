@@ -6,6 +6,7 @@
 ##---------------------------Defines-------------------------------------##
 wlan_iface="wlan0"
 gsm_iface="rmnet0"
+returncode=0
 
 
 
@@ -62,7 +63,8 @@ dumpsys)
 #
 ;;
 boost)
-   echo "boost" | nc localhost 4242
+   #echo "boost" | nc localhost 4242
+   chroot-break -c /system/bin/boost
 
 ;;
 wlan)
@@ -74,6 +76,7 @@ wlan)
       [[ "$3" == "on" ]]  && echo 0 > /proc/sys/net/ipv4/icmp_echo_ignore_all
    else
       echo "`basename $0` wlan power|ping on|off" 2> /dev/null
+      returncode=1
    fi
 
 ;;
@@ -152,12 +155,17 @@ music)
    #;;
    *)
       echo "`basename $0` music onlineradio|mortplayer play|pause|stop" 2> /dev/null
+      returncode=1
    ;;
    esac
 
 ;;
 *)
    echo "`basename $0` app|boost|cpu|dumpsys|free|info|kill|music|restart|shell|start|status|stop|wlan|wpnext" 2> /dev/null
+   returncode=1
 
 ;;
 esac
+
+exit $returncode
+
