@@ -1,0 +1,48 @@
+# Debian apt-mark(8) completion                           -*- shell-script -*-
+
+_apt_mark()
+{
+   local cur prev words cword
+   _init_completion || return
+
+   ## Get program command (apt-...)
+   local special
+   special=${words[0]}
+
+   ## If previous command has any special effect to this argument
+   case $prev in
+   -c|--config-file|-f|--file)
+      _filedir
+      return 0
+   ;;
+   -o|--option)
+   	return 0
+   ;;
+   esac
+
+   ## If current command has any special effect to this argument
+   if [[ "$cur" == "-f=*" ]]; then
+      _filedir
+      return 0
+   fi
+
+   ## If argument is part of a flag
+   if [[ "$cur" == -* ]]; then
+      COMPREPLY=( $( compgen -W '-h -f -v -c -o \
+                             --help --version --config-file --option' -- "$cur" ) )
+
+      return 0
+   fi
+
+   if echo ${words[@]} | grep -qvF -e auto -e manual -e hold -e unhold -e showauto -e showmanual -e showhold; then
+      COMPREPLY=( $( compgen -W 'auto manual hold unhold showauto showmanual showhold' -- "$cur" ) )
+      return 0
+   fi
+
+   COMPREPLY=( $( apt-cache --no-generate pkgnames "$cur" 2> /dev/null ) )
+
+   return 0
+} &&
+complete -F _apt_mark apt-mark
+
+# ex: ts=4 sw=4 et filetype=sh
