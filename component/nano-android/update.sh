@@ -1,7 +1,7 @@
 #!/bin/bash
 
 path=nano
-co='svn co svn://svn.savannah.gnu.org/nano/trunk/nano ./nano'
+co='svn co svn://svn.savannah.gnu.org/nano/trunk/nano ./'"$path"
 ud='svn update'
 
 
