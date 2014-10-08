@@ -54,7 +54,11 @@ kill)
 ;;
 dumpsys)
    echo "error: 'dumpsys' is deprecated and not in use anymore." >&2
-   echo "info: Use 'chroot-break -c /system/bin/dumpsys <args>' instead" >&2
+   if [ "$2" == "battery" ] && [ -e "/usr/bin/battery-notification" ]; then
+      echo "info: Use 'battery-notification --level' instead" >&2
+   else
+      echo "info: Use 'chroot-break -c /system/bin/dumpsys <args>' instead" >&2
+   fi
 
 #   echo "dumpsys" | nc localhost 4242
 #   sleep 2
@@ -144,19 +148,39 @@ music)
 
    case "$2" in
    onlineradio)
-      [[ "$3" == "play" ]] && chroot-break -c /system/bin/mksh /system/bin/am broadcast -n de.arvidg.onlineradio/.alarm.OneShotAlarm
+      [[ "$3" == "play"  ]] && chroot-break -c /system/bin/mksh /system/bin/am broadcast -n de.arvidg.onlineradio/.alarm.OneShotAlarm
       [[ "$3" == "pause" ]] && chroot-break -c /system/bin/mksh /system/bin/am broadcast -n de.arvidg.onlineradio/.alarm.OneShotAlarm
-      [[ "$3" == "stop" ]] && chroot-break -c /system/bin/mksh /system/bin/am broadcast -n de.arvidg.onlineradio/.alarm.OneShotAlarm
+      [[ "$3" == "stop"  ]] && chroot-break -c /system/bin/mksh /system/bin/am broadcast -n de.arvidg.onlineradio/.alarm.OneShotAlarm
    ;;
    #mortplayer)
-   #   [[ "$3" == "play" ]] && chroot-break -c /system/bin/mksh /system/bin/am broadcast -n de.arvidg.onlineradio/.alarm.OneShotAlarm
+   #   [[ "$3" == "play"  ]] && chroot-break -c /system/bin/mksh /system/bin/am broadcast -n de.arvidg.onlineradio/.alarm.OneShotAlarm
    #   [[ "$3" == "pause" ]] && chroot-break -c /system/bin/mksh /system/bin/am broadcast -n de.arvidg.onlineradio/.alarm.OneShotAlarm
-   #   [[ "$3" == "stop" ]] && chroot-break -c /system/bin/mksh /system/bin/am broadcast -n de.arvidg.onlineradio/.alarm.OneShotAlarm
+   #   [[ "$3" == "stop"  ]] && chroot-break -c /system/bin/mksh /system/bin/am broadcast -n de.arvidg.onlineradio/.alarm.OneShotAlarm
    #;;
    *)
       echo "`basename $0` music onlineradio|mortplayer play|pause|stop" 2> /dev/null
       returncode=1
    ;;
+   esac
+
+;;
+power)
+   case "$2" in
+   wlan)
+      [[ "$3" == "on"  ]] && chroot-break -c /system/bin/mksh /system/bin/svc wifi enable
+      [[ "$3" == "off" ]] && chroot-break -c /system/bin/mksh /system/bin/svc wifi disable
+   ;;
+   data)
+      [[ "$3" == "on"  ]] && chroot-break -c /system/bin/mksh /system/bin/svc data enable
+      [[ "$3" == "off" ]] && chroot-break -c /system/bin/mksh /system/bin/svc data disable
+   ;;
+   bluetooth)
+      [[ "$3" == "on"  ]] && chroot-break -c /system/bin/service call bluetooth 3 > /dev/null
+      [[ "$3" == "off" ]] && chroot-break -c /system/bin/service call bluetooth 4 > /dev/null
+   ;;
+   *)
+      echo "`basename $0` power bluetooth on|off"
+      returncode=1
    esac
 
 ;;
