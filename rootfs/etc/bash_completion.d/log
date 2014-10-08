@@ -1,0 +1,80 @@
+#!/bin/sh
+
+_quote_readline_by_ref_mod()
+{
+    if [ -z "$1" ]; then
+        # avoid quoting if empty
+        printf -v $2 %s "$basepath$1"
+    elif [[ $1 == \'* ]]; then
+        # Leave out first character
+        printf -v $2 %s "${1:1}"
+    elif [[ $1 == ~* ]]; then
+        # avoid escaping first ~
+        printf -v $2 ~%q "${1:1}"
+    elif [[ $1 == /* ]]; then
+        printf -v $2 %s "$1"
+    elif [[ $1 == $basepath* ]]; then
+        printf -v $2 %s "$1"
+    else
+        printf -v $2 %s "$basepath$1"
+    fi
+
+    # Replace double escaping ( \\ ) by single ( \ )
+    # This happens always when argument is already escaped at cmdline,
+    # and passed to this function as e.g.: file\ with\ spaces
+    [[ ${!2} == *\\* ]] && printf -v $2 %s "${1//\\\\/\\}"
+
+    # If result becomes quoted like this: $'string', re-evaluate in order to
+    # drop the additional quoting.  See also: http://www.mail-archive.com/
+    # bash-completion-devel@lists.alioth.debian.org/msg01942.html
+    [[ ${!2} == \$* ]] && eval $2=${!2}
+} # _quote_readline_by_ref()
+
+_log() {
+   local cur prev words cword
+   _init_completion || return
+   local basepath=/var/log/
+
+   ## Copy from /usr/share/bash-completion/bash_completion : _filedir
+    local i IFS=$'\n' xspec
+
+    _tilde "$cur" || return 0
+
+    local -a toks
+    local quoted x tmp
+
+    ## Get all directories
+    _quote_readline_by_ref_mod "$cur" quoted
+    x=$( compgen -d -- "$quoted" ) &&
+    while read -r tmp; do
+        toks+=( "$tmp" )
+    done <<< "$x"
+
+    #if [[ "$1" != -d ]]; then
+        # Munge xspec to contain uppercase version too
+        # http://thread.gmane.org/gmane.comp.shells.bash.bugs/15294/focus=15306
+        xspec=${1:+"!*.@($1|${1^^})"}
+        x=$( compgen -f -X "$xspec" -- $quoted ) &&
+        while read -r tmp; do
+            toks+=( "$tmp" )
+        done <<< "$x"
+    #fi
+
+    # If the filter failed to produce anything, try without it if configured to
+    [[ -n ${COMP_FILEDIR_FALLBACK:-} && \
+        -n "$1" && "$1" != -d && ${#toks[@]} -lt 1 ]] && \
+        x=$( compgen -f -- $quoted ) &&
+        while read -r tmp; do
+            toks+=( "$tmp" )
+        done <<< "$x"
+
+
+    if [[ ${#toks[@]} -ne 0 ]]; then
+        # 2>/dev/null for direct invocation, e.g. in the _filedir unit test
+        compopt -o filenames 2>/dev/null
+        COMPREPLY+=( "${toks[@]}" )
+    fi
+
+   return 0
+} &&
+complete -F _log log

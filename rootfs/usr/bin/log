@@ -1,22 +1,70 @@
 #!/bin/bash
-# See the file "license.terms" for information on usage and redistribution of
-# this file, and for a DISCLAIMER OF ALL WARRANTIES.
 
-[[ -z "$1" ]] && echo "$(basename "$0") <log name>" && exit 1
 
-if [ -d "/var/log/$1" ]; then
-   if [ -e "/var/log/$1/$1" ]; then
-      less -Si "/var/log/$1/$1"
-   elif [ -e "/var/log/$1/$1.log" ]; then
-      less -Si "/var/log/$1/$1.log"
+
+function function_open() {
+   if [ $allfiles == true ]; then
+      files="$(ls -v1 $1* | tac -)"
+      tmp="$(mktemp --suffix=.log log.XXXXXX)"
+      local IFS=$'\n'
+
+      for file in $files; do
+         if [ "${file:${#file}-3}" == ".gz" ]; then
+            zcat $file >> "$tmp"
+         else
+            cat $file >> "$tmp"
+         fi
+      done
+
+      less -SMi "$tmp"
+      rm "$tmp"
+
    else
-      echo "error: Log file doesn't exist"
+      less -SMi "$1"
    fi
-elif [ -e "/var/log/$1" ]; then
-   less -Si "/var/log/$1"
-elif [ -e "/var/log/$1.log" ]; then
-   less -Si "/var/log/$1.log"
+} #end Fct
+
+
+
+basepath="/var/log/"
+len=${#basepath}
+
+allfiles=false
+
+[[ "$1" == "-a" ]] && allfiles=true && logfile=$2 || logfile=$1
+
+
+[[ -z "$logfile" ]] && echo "$(basename "$0") [-a] <log name>" && exit 1
+
+
+[[ "${logfile:0:len}" == "$basepath" ]] && logfile=${logfile:len}
+
+
+
+if [ -d "$basepath$logfile" ]; then
+   if [ -e "$basepath$logfile/$logfile" ]; then
+      function_open "$basepath$logfile/$logfile"
+   elif [ -e "$basepath$logfile/$logfile.log" ]; then
+      function_open "$basepath$logfile/$logfile.log"
+   else
+      echo "error: Log logfile doesn't exist"
+      exit 2
+   fi
+
+elif [ -e "$basepath$logfile" ]; then
+   function_open "$basepath$logfile"
+
+elif [ -e "$basepath$logfile.log" ]; then
+   function_open "$basepath$logfile.log"
+
+elif [ -e "$logfile" ]; then
+   function_open "$logfile"
+
+elif [ -e "$logfile.log" ]; then
+   function_open "$logfile.log"
+
 else
-   echo "error: Log file doesn't exist"
+   echo "error: Log logfile doesn't exist"
+   exit 3
 fi
 
